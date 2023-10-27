@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "config": {},
+  "scripts": {
+    "start": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && node start.js"
+  },
+  "devDependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "colors": "^1.4.0",
+    "dotenv-run-script": "^0.4.1",
+    "html-validate": "^8.4.0",
+    "pa11y-ci": "^3.0.1",
+    "prompts": "^2.4.2"
+  }
+}
