@@ -1,9 +1,18 @@
 const prompts = require("prompts");
+const htmlTester = require("./html-tester");
+const a11yTester = require("./pa11y-ci");
 
 //https://github.com/terkelg/prompts
 
 (async () => {
-  const responseTool = await prompts({
+  let responseTool = "";
+  let type = "";
+  let sitemap = "";
+  let url = "";
+  let project = "";
+  let externalUrl = "";
+
+  responseTool = await prompts({
     type: "select",
     name: "value",
     message: "What do you want to do?",
@@ -14,7 +23,7 @@ const prompts = require("prompts");
     initial: 0,
   });
 
-  const type = await prompts({
+  type = await prompts({
     type: "select",
     name: "value",
     message: "What do you want to test?",
@@ -27,7 +36,7 @@ const prompts = require("prompts");
 
   switch (type.value) {
     case "sitemap":
-      const sitemap = await prompts({
+      sitemap = await prompts({
         type: "select",
         name: "value",
         message: "Where is the sitemap?",
@@ -40,14 +49,14 @@ const prompts = require("prompts");
 
       switch (sitemap.value) {
         case "project":
-          const project = await prompts({
+          project = await prompts({
             type: "text",
             name: "value",
             message: "What is the project code?",
           });
           break;
         case "externalUrl":
-          const externalUrl = await prompts({
+          externalUrl = await prompts({
             type: "text",
             name: "value",
             message: "What is the URL to the sitemap?",
@@ -56,7 +65,7 @@ const prompts = require("prompts");
       }
       break;
     case "url":
-      const url = await prompts({
+      url = await prompts({
         type: "text",
         name: "value",
         message: "What is the URL?",
@@ -64,5 +73,37 @@ const prompts = require("prompts");
       break;
   }
 
-  //   console.log(responseTool, type, sitemap, url, project, externalUrl); // => { value: 24 }
+  if (responseTool.value === "html") {
+    if (type.value === "sitemap") {
+      if (sitemap.value === "project") {
+        htmlTester(
+          `http://${project.value}.local.statik.be/sitemap.xml`,
+          "",
+          true
+        );
+      } else {
+        htmlTester(externalUrl.value);
+      }
+    }
+    if (type.value === "url") {
+      htmlTester(null, url.value);
+    }
+  }
+
+  if (responseTool.value === "a11y") {
+    if (type.value === "sitemap") {
+      if (sitemap.value === "project") {
+        a11yTester(
+          `http://${project.value}.local.statik.be/sitemap.xml`,
+          "",
+          true
+        );
+      } else {
+        a11yTester(externalUrl.value);
+      }
+    }
+    if (type.value === "url") {
+      a11yTester(null, url.value);
+    }
+  }
 })();

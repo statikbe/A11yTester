@@ -2,21 +2,14 @@
   "private": true,
   "config": {},
   "scripts": {
-    "start": "node start.js",
-    "test-a11y-sitemap": "pa11y-ci --sitemap $BASE_URL/sitemap.xml",
-    "test-a11y": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && dotenv-run-script test-a11y-sitemap",
-    "test-html-sitemap": "node html-tester.js --sitemap $BASE_URL/sitemap.xml",
-    "test-html": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && dotenv-run-script test-html-sitemap"
+    "start": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && node start.js"
   },
   "devDependencies": {
     "cheerio": "^1.0.0-rc.12",
     "colors": "^1.4.0",
-    "commander": "6.2.1",
     "dotenv-run-script": "^0.4.1",
-    "globby": "6.1.0",
     "html-validate": "^8.4.0",
     "pa11y-ci": "^3.0.1",
-    "prompts": "^2.4.2",
-    "protocolify": "3.0.0"
+    "prompts": "^2.4.2"
   }
 }
