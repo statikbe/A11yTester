@@ -1,13 +1,15 @@
 const prompts = require("prompts");
 const htmlTester = require("./html-tester");
 const a11yTester = require("./pa11y-ci");
+const linksTester = require("./links-tester");
 const fs = require("fs");
 
 let runData = null;
-fs.readFile("session.json", function (err, buf) {
-  runData = JSON.parse(buf.toString());
-  startFlow();
-});
+linksTester("http://kbstsu.local.statik.be/sitemap.xml");
+// fs.readFile("session.json", function (err, buf) {
+//   runData = JSON.parse(buf.toString());
+//   startFlow();
+// });
 
 function startFlow() {
   (async () => {

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 "use strict";
 
-const cheerio = require("cheerio");
 const HtmlValidate = require("html-validate");
 const colors = require("colors");
+const helpers = require("./helpers");
 
 colors.enable();
 
-module.exports = function htmlTester(sitemapUrl, url = "", local = false) {
+module.exports = function htmlTester(sitemapUrl, url = "") {
   let urls = [];
   if (url.length > 0) {
     urls = url.split(",");
@@ -16,7 +16,7 @@ module.exports = function htmlTester(sitemapUrl, url = "", local = false) {
   if (sitemapUrl) {
     Promise.resolve()
       .then(() => {
-        getUrlsFromSitemap(sitemapUrl, null, urls).then((urls) => {
+        helpers.getUrlsFromSitemap(sitemapUrl, null, urls).then((urls) => {
           testUrls(urls);
         });
       })
@@ -46,6 +46,7 @@ module.exports = function htmlTester(sitemapUrl, url = "", local = false) {
             "wcag/h63": "off",
             "script-type": "off",
             "long-title": "off",
+            "no-raw-characters": "off",
           },
         });
         let output = "";
@@ -111,50 +112,6 @@ module.exports = function htmlTester(sitemapUrl, url = "", local = false) {
         // Handle any errors
         console.error(error.message);
         process.exit(1);
-      });
-  }
-
-  function getUrlsFromSitemap(sitemapUrl, sitemapExclude, urls) {
-    return Promise.resolve()
-      .then(() => fetch(sitemapUrl))
-      .then((response) => response.text())
-      .then((body) => {
-        const $ = cheerio.load(body, { xmlMode: true });
-
-        const isSitemapIndex = $("sitemapindex").length > 0;
-        if (isSitemapIndex) {
-          return Promise.all(
-            $("sitemap > loc")
-              .toArray()
-              .map((element) => {
-                return getUrlsFromSitemap(
-                  $(element).text(),
-                  sitemapExclude,
-                  urls
-                );
-              })
-          ).then((configs) => {
-            return configs.pop();
-          });
-        }
-
-        $("url > loc")
-          .toArray()
-          .forEach((element) => {
-            let url = $(element).text();
-            if (sitemapExclude != undefined && url.match(sitemapExclude)) {
-              return;
-            }
-            urls.push(url);
-          });
-        return urls;
-      })
-      .catch((error) => {
-        if (error.stack && error.stack.includes("node-fetch")) {
-          throw new Error(`The sitemap "${sitemapUrl}" could not be loaded`);
-        }
-        console.log(error);
-        throw new Error(`The sitemap "${sitemapUrl}" could not be parsed`);
       });
   }
 };
