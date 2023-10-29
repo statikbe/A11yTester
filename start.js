@@ -5,11 +5,10 @@ const linksTester = require("./links-tester");
 const fs = require("fs");
 
 let runData = null;
-linksTester("http://kbstsu.local.statik.be/sitemap.xml");
-// fs.readFile("session.json", function (err, buf) {
-//   runData = JSON.parse(buf.toString());
-//   startFlow();
-// });
+fs.readFile("session.json", function (err, buf) {
+  runData = JSON.parse(buf.toString());
+  startFlow();
+});
 
 function startFlow() {
   (async () => {
@@ -27,6 +26,7 @@ function startFlow() {
       choices: [
         { title: "Test A11y", value: "a11y" },
         { title: "Test HTML", value: "html" },
+        { title: "Test Broken Links", value: "links" },
         { title: "Nothing (Exit)", value: "exit" },
       ],
       initial: 0,
@@ -147,6 +147,26 @@ function startFlow() {
       }
       if (type.value === "url") {
         await a11yTester(null, url.value);
+        runData.url = url.value;
+      }
+    }
+
+    if (responseTool.value === "links") {
+      if (type.value === "sitemap") {
+        if (sitemap.value === "project") {
+          await linksTester(
+            `http://${project.value}.local.statik.be/sitemap.xml`,
+            "",
+            true
+          );
+          runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
+        } else {
+          await linksTester(externalUrl.value);
+          runData.url = externalUrl.value;
+        }
+      }
+      if (type.value === "url") {
+        await linksTester(null, url.value);
         runData.url = url.value;
       }
     }

@@ -40,6 +40,7 @@ module.exports = function linksTester(sitemapUrl, url = "") {
         let output = "";
         const totalUrls = urls.length;
         let allDone = 0;
+        let uniqueLinks = [];
 
         const multibar = new cliProgress.MultiBar(
           {
@@ -72,6 +73,9 @@ module.exports = function linksTester(sitemapUrl, url = "") {
           },
           cliProgress.Presets.shades_grey
         );
+
+        const baseUrl = urls[0].split("/")[0] + "//" + urls[0].split("/")[2];
+
         // Run the tests
         urls.forEach((url) => {
           Promise.resolve()
@@ -84,43 +88,126 @@ module.exports = function linksTester(sitemapUrl, url = "") {
               Promise.resolve().then(() => {
                 let totalErrors = 0;
                 let urlsChecked = 0;
+                let urlErrors = colors.cyan(`> Errors for: ${url}\n\n`);
 
                 const $ = cheerio.load(body);
                 uniqueSelector.init($);
-                const elements = $("a[href]")
+                const elementsAnchors = $("a[href]")
                   .toArray()
                   .filter((element) =>
                     $(element).attr("href").startsWith("http")
                   );
+                const elementsLinks = $("link[href]")
+                  .toArray()
+                  .filter(
+                    (element) =>
+                      $(element).attr("rel") != "canonical" &&
+                      $(element).attr("rel") != "alternate" &&
+                      $(element).attr("rel") != "preconnect"
+                  )
+                  .map((element) => {
+                    if ($(element).attr("href").startsWith("http"))
+                      return element;
+                    else
+                      return $(element)
+                        .attr("href", baseUrl + $(element).attr("href"))
+                        .get(0);
+                  });
+                const elementsScripts = $("script[src]").toArray();
+                const elementsImages = $("img[src]")
+                  .toArray()
+                  .map((element) => {
+                    if ($(element).attr("src").startsWith("http"))
+                      return element;
+                    else if ($(element).attr("src").startsWith("data"))
+                      return element;
+                    else
+                      return $(element)
+                        .attr("src", baseUrl + $(element).attr("src"))
+                        .get(0);
+                  });
+                let elements = [
+                  ...elementsAnchors,
+                  ...elementsLinks,
+                  ...elementsScripts,
+                  ...elementsImages,
+                ];
+
+                elements = elements.map((element) => {
+                  let link = "";
+                  if (element.tagName == "a" || element.tagName == "link")
+                    link = $(element).attr("href");
+                  else if (
+                    element.tagName == "script" ||
+                    element.tagName == "img"
+                  )
+                    link = $(element).attr("src");
+                  if (element.tagName == "img" && link.startsWith("data")) {
+                    link = $(element).attr("srcset").split(" ")[0];
+                    if (link.indexOf("http") == -1) {
+                      link = baseUrl + link;
+                    }
+                  }
+                  $(element).attr("data-url", link);
+                  return element;
+                });
+
+                // elements = elements.filter((element) => {
+                //   if (uniqueLinks.indexOf($(element).attr("data-url")) >= 0)
+                //     return false;
+                //   else {
+                //     uniqueLinks.push($(element).attr("data-url"));
+                //     return true;
+                //   }
+                // });
+
                 const bar = multibar.create(elements.length, 0);
                 bar.update(0, { url: url, errors: totalErrors });
 
                 elements.map((element) => {
-                  const link = $(element).attr("href");
-                  fetch(link)
+                  fetch($(element).attr("data-url"))
                     .then((response) => {
                       if (response.status >= 400) {
-                        // console.log(
-                        //   link,
-                        //   $(element).text(),
-                        //   $(element).getUniqueSelector()
-                        // );
+                        urlErrors += ` ${colors.red("•")} ${colors.red(
+                          response.status
+                        )} : ${$(element).attr("data-url")}\n`;
+                        urlErrors += `   ${colors.yellow(
+                          $(element).text()
+                        )} : ${colors.yellow(
+                          $(element).getUniqueSelector()
+                        )}\n\n`;
                         totalErrors++;
                       }
                       urlsChecked++;
                       bar.update(urlsChecked, { errors: totalErrors });
-                      if (urlsChecked == elements.length) allDone++;
+                      if (urlsChecked == elements.length) {
+                        allDone++;
+                        if (totalErrors > 0) {
+                          output += urlErrors;
+                        }
+                      }
                       if (allDone == totalUrls) multibar.stop();
                     })
                     .catch((error) => {
-                      //   console.log(link, $(element).text(), error.cause.code);
+                      urlErrors += ` ${colors.red("•")} ${colors.red(
+                        error.cause.code
+                      )} : ${$(element).attr("data-url")}\n`;
+                      urlErrors += `   ${colors.yellow(
+                        $(element).text()
+                      )} : ${colors.yellow(
+                        $(element).getUniqueSelector()
+                      )}\n\n`;
                       totalErrors++;
                       urlsChecked++;
                       bar.update(urlsChecked, { errors: totalErrors });
-                      if (urlsChecked == elements.length) allDone++;
+                      if (urlsChecked == elements.length) {
+                        allDone++;
+                        if (totalErrors > 0) {
+                          output += urlErrors;
+                        }
+                      }
                       if (allDone == totalUrls) multibar.stop();
                     });
-                  // console.log(link, $(element).getUniqueSelector());
                 });
               });
             })
@@ -132,7 +219,9 @@ module.exports = function linksTester(sitemapUrl, url = "") {
         });
 
         multibar.on("stop", function () {
-          console.log("All done!");
+          process.stdout.write("\n\n");
+          process.stdout.write(output);
+          process.exit(0);
         });
       })
       .catch((error) => {
