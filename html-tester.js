@@ -47,6 +47,7 @@ module.exports = function htmlTester(sitemapUrl, url = "") {
             "script-type": "off",
             "long-title": "off",
             "no-raw-characters": "off",
+            "attribute-boolean-style": "off",
           },
         });
         let output = "";
@@ -56,7 +57,15 @@ module.exports = function htmlTester(sitemapUrl, url = "") {
         // Run the tests
         urls.forEach((url) => {
           Promise.resolve()
-            .then(() => fetch(url))
+            .then(() =>
+              fetch(url, {
+                signal: AbortSignal.timeout(10000),
+                headers: {
+                  "User-Agent":
+                    "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
+                },
+              })
+            )
             .then((response) => response.text())
             .then((body) => {
               htmlvalidate
@@ -100,11 +109,22 @@ module.exports = function htmlTester(sitemapUrl, url = "") {
                   currentUrl++;
                   process.stdout.write(colors.cyan(" > "));
                   process.stdout.write(url);
-                  console.log(error);
+                  output += colors.underline(`${url}\n\n`);
+                  output += ` ${colors.red("•")} ${error}\n`;
+                  if (currentUrl == totalUrls) {
+                    process.stdout.write(output);
+                  }
                 });
             })
             .catch((error) => {
-              console.log(error);
+              currentUrl++;
+              process.stdout.write(colors.cyan(" > "));
+              process.stdout.write(url);
+              output += colors.underline(`${url}\n\n`);
+              output += ` ${colors.red("•")} ${error}\n`;
+              if (currentUrl == totalUrls) {
+                process.stdout.write(output);
+              }
             });
         });
       })

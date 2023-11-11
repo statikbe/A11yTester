@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 "use strict";
 
-const cheerio = require("cheerio");
-const fetch = require("node-fetch");
 const pa11yCi = require("pa11y-ci");
 const helpers = require("./helpers");
 

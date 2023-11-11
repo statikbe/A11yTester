@@ -71,7 +71,14 @@ module.exports = function linksTester(sitemapUrl, url = "") {
     let output = "";
     return new Promise((resolveTest, rejectTest) => {
       Promise.resolve()
-        .then(() => fetch(url))
+        .then(() =>
+          fetch(url, {
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
+            },
+          })
+        )
         .then((response) => response.text())
         .then((body) => {
           //Do the test
@@ -192,6 +199,10 @@ module.exports = function linksTester(sitemapUrl, url = "") {
             elements.map((element) => {
               fetch($(element).attr("data-url"), {
                 signal: AbortSignal.timeout(10000),
+                headers: {
+                  "User-Agent":
+                    "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
+                },
               })
                 .then((response) => {
                   if (response.status >= 400) {

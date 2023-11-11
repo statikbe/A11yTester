@@ -2,7 +2,14 @@ const cheerio = require("cheerio");
 
 const getUrlsFromSitemap = (sitemapUrl, sitemapExclude, urls) => {
   return Promise.resolve()
-    .then(() => fetch(sitemapUrl))
+    .then(() =>
+      fetch(sitemapUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
+        },
+      })
+    )
     .then((response) => response.text())
     .then((body) => {
       const $ = cheerio.load(body, { xmlMode: true });
