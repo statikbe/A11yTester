@@ -1,49 +1,53 @@
 #!/usr/bin/env node
 "use strict";
 
-const cheerio = require("cheerio");
-const colors = require("colors");
-const helpers = require("./helpers");
-const uniqueSelector = require("cheerio-get-css-selector");
-const cliProgress = require("cli-progress");
+import colors from "colors";
+import { Helper } from "./helpers";
+import * as cheerio from "cheerio";
+import * as uniqueSelector from "cheerio-get-css-selector";
+import * as cliProgress from "cli-progress";
 
-colors.enable();
+export class LinkTester {
+  constructor() {}
+  public test(sitemapUrl: string | null, url = "") {
+    colors.enable();
 
-module.exports = function linksTester(sitemapUrl, url = "") {
-  let urls = [];
-  if (url.length > 0) {
-    urls = url.split(",");
-  }
+    let urls: string[] = [];
+    if (url.length > 0) {
+      urls = url.split(",");
+    }
 
-  if (sitemapUrl) {
-    Promise.resolve()
-      .then(() => {
-        helpers.getUrlsFromSitemap(sitemapUrl, null, urls).then((urls) => {
-          testUrls(urls);
+    if (sitemapUrl) {
+      Promise.resolve()
+        .then(() => {
+          Helper.getUrlsFromSitemap(sitemapUrl, "", urls).then((urls) => {
+            if (urls) {
+              this.testUrls(urls);
+            }
+          });
+        })
+        .catch((error) => {
+          // Handle any errors
+          console.error(error.message);
+          process.exit(1);
         });
-      })
-      .catch((error) => {
-        // Handle any errors
-        console.error(error.message);
-        process.exit(1);
-      });
-  } else {
-    testUrls(urls);
+    } else {
+      this.testUrls(urls);
+    }
   }
 
-  function testUrls(urls) {
+  private testUrls(urls: string[]) {
     Promise.resolve()
       .then(() => {
         console.log(
           colors.cyan.underline(`Running validation on ${urls.length} URLS\n`)
         );
         let output = "";
-        const totalUrls = urls.length;
-        let uniqueLinks = [];
+        let uniqueLinks: string[] = [];
         const baseUrl = urls[0].split("/")[0] + "//" + urls[0].split("/")[2];
 
         // Run the tests
-        testLinks(urls, urls[0], baseUrl, uniqueLinks, output);
+        this.testLinks(urls, baseUrl, uniqueLinks, output);
       })
       .catch((error) => {
         // Handle any errors
@@ -52,13 +56,18 @@ module.exports = function linksTester(sitemapUrl, url = "") {
       });
   }
 
-  function testLinks(urls, url, baseUrl, uniqueLinks, output) {
-    testLink(urls[0], baseUrl, uniqueLinks).then((result) => {
+  private testLinks(
+    urls: string[],
+    baseUrl: string,
+    uniqueLinks: string[],
+    output: string
+  ) {
+    this.testLink(urls[0], baseUrl, uniqueLinks).then((result: any) => {
       output += result.output;
       uniqueLinks = result.uniqueLinks;
       urls.shift();
       if (urls.length > 0) {
-        testLinks(urls, urls[0], baseUrl, uniqueLinks, output);
+        this.testLinks(urls, baseUrl, uniqueLinks, output);
       } else {
         process.stdout.write("\n\n");
         process.stdout.write(output);
@@ -67,7 +76,7 @@ module.exports = function linksTester(sitemapUrl, url = "") {
     });
   }
 
-  function testLink(url, baseUrl, uniqueLinks) {
+  private testLink(url: string, baseUrl: string, uniqueLinks: string[]) {
     let output = "";
     return new Promise((resolveTest, rejectTest) => {
       Promise.resolve()
@@ -91,32 +100,36 @@ module.exports = function linksTester(sitemapUrl, url = "") {
             uniqueSelector.init($);
             const elementsAnchors = $("a[href]")
               .toArray()
-              .filter((element) => $(element).attr("href").startsWith("http"));
+              .filter((element: any) => {
+                const href = $(element).attr("href");
+                return href && href.startsWith("http");
+              });
             const elementsLinks = $("link[href]")
               .toArray()
               .filter(
-                (element) =>
+                (element: any) =>
                   $(element).attr("rel") != "canonical" &&
                   $(element).attr("rel") != "alternate" &&
                   $(element).attr("rel") != "preconnect"
               )
-              .map((element) => {
-                if ($(element).attr("href").startsWith("http")) return element;
+              .map((element: any) => {
+                const href = $(element).attr("href");
+                if (href && href.startsWith("http")) return element;
                 else
                   return $(element)
-                    .attr("href", baseUrl + $(element).attr("href"))
+                    .attr("href", baseUrl + href)
                     .get(0);
               });
             const elementsScripts = $("script[src]").toArray();
             const elementsImages = $("img[src]")
               .toArray()
-              .map((element) => {
-                if ($(element).attr("src").startsWith("http")) return element;
-                else if ($(element).attr("src").startsWith("data"))
-                  return element;
+              .map((element: any) => {
+                const src = $(element).attr("src");
+                if (src && src.startsWith("http")) return element;
+                else if (src && src.startsWith("data")) return element;
                 else
                   return $(element)
-                    .attr("src", baseUrl + $(element).attr("src"))
+                    .attr("src", baseUrl + src)
                     .get(0);
               });
             let elements = [
@@ -128,12 +141,16 @@ module.exports = function linksTester(sitemapUrl, url = "") {
 
             elements = elements.map((element) => {
               let link = "";
+              if (!element) return element;
               if (element.tagName == "a" || element.tagName == "link")
-                link = $(element).attr("href");
+                link = $(element).attr("href") ?? "";
               else if (element.tagName == "script" || element.tagName == "img")
-                link = $(element).attr("src");
+                link = $(element).attr("src") ?? "";
               if (element.tagName == "img" && link.startsWith("data")) {
-                link = $(element).attr("srcset").split(" ")[0];
+                const srcset = $(element).attr("srcset");
+                if (srcset) {
+                  link = srcset.split(" ")[0];
+                }
                 if (link.indexOf("http") == -1) {
                   link = baseUrl + link;
                 }
@@ -143,19 +160,21 @@ module.exports = function linksTester(sitemapUrl, url = "") {
             });
 
             elements = elements.filter((element) => {
-              if (uniqueLinks.indexOf($(element).attr("data-url")) >= 0)
-                return false;
-              else {
-                uniqueLinks.push($(element).attr("data-url"));
-                return true;
-              }
+              const dataUrl = $(element).attr("data-url");
+              if (dataUrl) {
+                if (uniqueLinks.indexOf(dataUrl) >= 0) return false;
+                else {
+                  uniqueLinks.push(dataUrl);
+                  return true;
+                }
+              } else return false;
             });
 
             const bar = new cliProgress.SingleBar(
               {
                 clearOnComplete: false,
                 hideCursor: true,
-                format: (options, params, payload) => {
+                format: (options: any, params: any, payload: any) => {
                   // bar grows dynamically by current progress - no whitespaces are added
                   const bar = options.barCompleteString.substr(
                     0,
@@ -197,7 +216,10 @@ module.exports = function linksTester(sitemapUrl, url = "") {
             }
 
             elements.map((element) => {
-              fetch($(element).attr("data-url"), {
+              const dataUrl = $(element).attr("data-url");
+              if (!dataUrl) return;
+              if (!element) return;
+              fetch(dataUrl, {
                 signal: AbortSignal.timeout(10000),
                 headers: {
                   "User-Agent":
@@ -207,13 +229,15 @@ module.exports = function linksTester(sitemapUrl, url = "") {
                 .then((response) => {
                   if (response.status >= 400) {
                     urlErrors += ` ${colors.red("•")} ${colors.red(
-                      response.status
+                      `${response.status}`
                     )} : ${$(element).attr("data-url")}\n`;
                     urlErrors += `   ${colors.yellow(
                       $(element).text().length
                         ? $(element).text()
                         : `<${element.tagName}>`
-                    )} : ${colors.yellow($(element).getUniqueSelector())}\n\n`;
+                    )} : ${colors.yellow(
+                      ($(element) as any).getUniqueSelector()
+                    )}\n\n`;
                     totalErrors++;
                   }
                   urlsChecked++;
@@ -237,7 +261,9 @@ module.exports = function linksTester(sitemapUrl, url = "") {
                     $(element).text().length
                       ? $(element).text()
                       : `<${element.tagName}>`
-                  )} : ${colors.yellow($(element).getUniqueSelector())}\n\n`;
+                  )} : ${colors.yellow(
+                    ($(element) as any).getUniqueSelector()
+                  )}\n\n`;
                   totalErrors++;
                   urlsChecked++;
                   bar.update(urlsChecked, { errors: totalErrors });
@@ -260,4 +286,4 @@ module.exports = function linksTester(sitemapUrl, url = "") {
         });
     });
   }
-};
+}

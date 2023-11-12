@@ -1,41 +1,47 @@
 #!/usr/bin/env node
 "use strict";
 
-const HtmlValidate = require("html-validate");
-const colors = require("colors");
-const helpers = require("./helpers");
+import { HtmlValidate } from "html-validate/node";
+import colors from "colors";
+import { Helper } from "./helpers";
 
-colors.enable();
-
-module.exports = function htmlTester(sitemapUrl, url = "") {
-  let urls = [];
-  if (url.length > 0) {
-    urls = url.split(",");
+export class HTMLTester {
+  constructor() {
+    colors.enable();
   }
 
-  if (sitemapUrl) {
-    Promise.resolve()
-      .then(() => {
-        helpers.getUrlsFromSitemap(sitemapUrl, null, urls).then((urls) => {
-          testUrls(urls);
+  public test(sitemapUrl: string | null, url = "") {
+    let urls: string[] = [];
+    if (url.length > 0) {
+      urls = url.split(",");
+    }
+
+    if (sitemapUrl) {
+      Promise.resolve()
+        .then(() => {
+          Helper.getUrlsFromSitemap(sitemapUrl, "", urls).then((urls) => {
+            if (urls) {
+              this.testUrls(urls);
+            }
+          });
+        })
+        .catch((error) => {
+          // Handle any errors
+          console.error(error.message);
+          process.exit(1);
         });
-      })
-      .catch((error) => {
-        // Handle any errors
-        console.error(error.message);
-        process.exit(1);
-      });
-  } else {
-    testUrls(urls);
+    } else {
+      this.testUrls(urls);
+    }
   }
 
-  function testUrls(urls) {
+  private testUrls(urls: string[]) {
     Promise.resolve()
       .then(() => {
         console.log(
           colors.cyan.underline(`Running validation on ${urls.length} URLS`)
         );
-        const htmlvalidate = new HtmlValidate.HtmlValidate({
+        const htmlvalidate = new HtmlValidate({
           elements: ["html5"],
           extends: ["html-validate:recommended"],
           rules: {
@@ -70,7 +76,7 @@ module.exports = function htmlTester(sitemapUrl, url = "") {
             .then((body) => {
               htmlvalidate
                 .validateString(body)
-                .then((result) => {
+                .then((result: any) => {
                   currentUrl++;
                   process.stdout.write(colors.cyan(" > "));
                   process.stdout.write(url);
@@ -85,7 +91,7 @@ module.exports = function htmlTester(sitemapUrl, url = "") {
                     output += colors.underline(
                       `${url} - ${result.results[0].errorCount} errors\n\n`
                     );
-                    result.results[0].messages.forEach((message) => {
+                    result.results[0].messages.forEach((message: any) => {
                       output += ` ${colors.red("•")} ${message.message}\n`;
                       if (message.selector) {
                         output += `   ${colors.yellow(message.selector)}\n`;
@@ -105,7 +111,7 @@ module.exports = function htmlTester(sitemapUrl, url = "") {
                     process.stdout.write(output);
                   }
                 })
-                .catch((error) => {
+                .catch((error: string) => {
                   currentUrl++;
                   process.stdout.write(colors.cyan(" > "));
                   process.stdout.write(url);
@@ -134,4 +140,4 @@ module.exports = function htmlTester(sitemapUrl, url = "") {
         process.exit(1);
       });
   }
-};
+}

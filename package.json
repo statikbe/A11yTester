@@ -1,17 +1,28 @@
 {
+  "name": "a11ytester",
   "private": true,
-  "config": {},
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "start": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && node start.js"
+    "dev": "vite",
+    "build-cli": "vite build --config vite.config.cli.js",
+    "build": "tsc && vite build",
+    "cli": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && node cli.js"
   },
   "devDependencies": {
     "cheerio": "^1.0.0-rc.12",
     "cheerio-get-css-selector": "^2.0.0",
     "cli-progress": "^3.12.0",
     "colors": "^1.4.0",
-    "dotenv-run-script": "^0.4.1",
-    "html-validate": "^8.4.0",
+    "html-validate": "^8.7.1",
     "pa11y-ci": "^3.0.1",
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.5",
+    "vite-plugin-node": "^3.1.0"
+  },
+  "dependencies": {
+    "@types/cli-progress": "^3.11.5",
+    "@types/prompts": "^2.4.8"
   }
 }
