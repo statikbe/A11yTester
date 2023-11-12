@@ -56,8 +56,83 @@ __publicField(_Helper, "getUrlsFromSitemap", (sitemapUrl, sitemapExclude, urls) 
   });
 });
 let Helper = _Helper;
+class Output {
+  constructor(type) {
+    __publicField(this, "outputHTML", []);
+    __publicField(this, "outputLinks", []);
+    __publicField(this, "outputType");
+    this.outputType = type;
+  }
+  add(url, errorMessage) {
+    switch (this.outputType) {
+      case "a11y":
+        break;
+      case "html":
+        this.addHTML(url, errorMessage);
+        break;
+    }
+  }
+  render(type) {
+    switch (this.outputType) {
+      case "a11y":
+        break;
+      case "html":
+        this.renderHTMLOutput(type);
+        break;
+    }
+  }
+  addHTML(url, errorMessage) {
+    const output = this.outputHTML.find((output2) => output2.url === url);
+    if (output) {
+      output.errorMessages.push(errorMessage);
+    } else {
+      this.outputHTML.push({
+        url,
+        errorMessages: [errorMessage]
+      });
+    }
+  }
+  renderHTMLOutput(type) {
+    switch (type) {
+      case "console":
+        this.renderHTMLOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputHTML);
+    }
+  }
+  renderHTMLOutputConsole() {
+    let output = "";
+    this.outputHTML.forEach((outputType) => {
+      output += colors.underline.cyan(
+        `${outputType.url} - ${outputType.errorMessages.length} errors
+
+`
+      );
+      outputType.errorMessages.forEach((message) => {
+        output += ` ${colors.red("•")} ${message.message}
+`;
+        if (message.selector) {
+          output += `   ${colors.yellow(message.selector)}
+`;
+        }
+        if (message.ruleId && message.line && message.column) {
+          output += `   ${colors.dim(message.ruleId)} - line: ${message.line} | column: ${message.column}
+`;
+        }
+        if (message.ruleUrl) {
+          output += `   ${colors.dim.underline.italic(message.ruleUrl)}
+`;
+        }
+        output += "\n";
+      });
+    });
+    process.stdout.write(output);
+  }
+}
 class HTMLTester {
   constructor() {
+    __publicField(this, "output");
     colors.enable();
   }
   test(sitemapUrl, url = "") {
@@ -100,9 +175,9 @@ class HTMLTester {
           "attribute-boolean-style": "off"
         }
       });
-      let output = "";
+      this.output = new Output("html");
       const totalUrls = urls.length;
-      let currentUrl = 0;
+      let currentUrl = 1;
       urls.forEach((url) => {
         Promise.resolve().then(
           () => fetch(url, {
@@ -113,73 +188,52 @@ class HTMLTester {
           })
         ).then((response) => response.text()).then((body) => {
           htmlvalidate.validateString(body).then((result) => {
-            currentUrl++;
-            process.stdout.write(colors.cyan(" > "));
-            process.stdout.write(url);
-            process.stdout.write(" - ");
             if (result.valid) {
               console.log(colors.green("0 errors"));
+              this.RenderUrl(url, currentUrl++, totalUrls, 0);
             } else {
-              console.log(
-                colors.red(`${result.results[0].errorCount} errors`)
-              );
-              output += colors.underline(
-                `${url} - ${result.results[0].errorCount} errors
-
-`
+              this.RenderUrl(
+                url,
+                currentUrl++,
+                totalUrls,
+                result.results[0].errorCount
               );
               result.results[0].messages.forEach((message) => {
-                output += ` ${colors.red("•")} ${message.message}
-`;
-                if (message.selector) {
-                  output += `   ${colors.yellow(message.selector)}
-`;
-                }
-                output += `   ${colors.dim(message.ruleId)} - line: ${message.line} | column: ${message.column}
-`;
-                if (message.ruleUrl) {
-                  output += `   ${colors.dim.underline.italic(
-                    message.ruleUrl
-                  )}
-`;
-                }
-                output += "\n";
+                this.output.add(url, message);
               });
             }
-            if (currentUrl == totalUrls) {
-              process.stdout.write(output);
-            }
           }).catch((error) => {
-            currentUrl++;
-            process.stdout.write(colors.cyan(" > "));
-            process.stdout.write(url);
-            output += colors.underline(`${url}
-
-`);
-            output += ` ${colors.red("•")} ${error}
-`;
-            if (currentUrl == totalUrls) {
-              process.stdout.write(output);
-            }
+            this.RenderUrl(url, currentUrl++, totalUrls, 1, {
+              message: error
+            });
           });
         }).catch((error) => {
-          currentUrl++;
-          process.stdout.write(colors.cyan(" > "));
-          process.stdout.write(url);
-          output += colors.underline(`${url}
-
-`);
-          output += ` ${colors.red("•")} ${error}
-`;
-          if (currentUrl == totalUrls) {
-            process.stdout.write(output);
-          }
+          this.RenderUrl(url, currentUrl++, totalUrls, 1, {
+            message: error
+          });
         });
       });
     }).catch((error) => {
       console.error(error.message);
       process.exit(1);
     });
+  }
+  RenderUrl(url, currentUrl, totalUrls, errors, message) {
+    process.stdout.write(colors.cyan(" > "));
+    process.stdout.write(colors.yellow(` ${currentUrl}/${totalUrls} `));
+    process.stdout.write(url);
+    process.stdout.write(" - ");
+    if (errors == 0) {
+      console.log(colors.green("0 errors"));
+    } else {
+      console.log(colors.red(`${errors} errors`));
+    }
+    if (message) {
+      this.output.add(url, message);
+    }
+    if (currentUrl == totalUrls) {
+      this.output.render("console");
+    }
   }
 }
 class A11yTester {

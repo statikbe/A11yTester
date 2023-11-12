@@ -4,8 +4,10 @@
 import { HtmlValidate } from "html-validate/node";
 import colors from "colors";
 import { Helper } from "./helpers";
+import { HTMLErrorMessage, Output } from "./output";
 
 export class HTMLTester {
+  private output: Output;
   constructor() {
     colors.enable();
   }
@@ -56,9 +58,9 @@ export class HTMLTester {
             "attribute-boolean-style": "off",
           },
         });
-        let output = "";
+        this.output = new Output("html");
         const totalUrls = urls.length;
-        let currentUrl = 0;
+        let currentUrl = 1;
 
         // Run the tests
         urls.forEach((url) => {
@@ -77,60 +79,32 @@ export class HTMLTester {
               htmlvalidate
                 .validateString(body)
                 .then((result: any) => {
-                  currentUrl++;
-                  process.stdout.write(colors.cyan(" > "));
-                  process.stdout.write(url);
-                  process.stdout.write(" - ");
                   if (result.valid) {
                     console.log(colors.green("0 errors"));
+                    this.RenderUrl(url, currentUrl++, totalUrls, 0);
                   } else {
-                    console.log(
-                      colors.red(`${result.results[0].errorCount} errors`)
+                    this.RenderUrl(
+                      url,
+                      currentUrl++,
+                      totalUrls,
+                      result.results[0].errorCount
                     );
 
-                    output += colors.underline(
-                      `${url} - ${result.results[0].errorCount} errors\n\n`
-                    );
                     result.results[0].messages.forEach((message: any) => {
-                      output += ` ${colors.red("•")} ${message.message}\n`;
-                      if (message.selector) {
-                        output += `   ${colors.yellow(message.selector)}\n`;
-                      }
-                      output += `   ${colors.dim(message.ruleId)} - line: ${
-                        message.line
-                      } | column: ${message.column}\n`;
-                      if (message.ruleUrl) {
-                        output += `   ${colors.dim.underline.italic(
-                          message.ruleUrl
-                        )}\n`;
-                      }
-                      output += "\n";
+                      this.output.add(url, message);
                     });
-                  }
-                  if (currentUrl == totalUrls) {
-                    process.stdout.write(output);
                   }
                 })
                 .catch((error: string) => {
-                  currentUrl++;
-                  process.stdout.write(colors.cyan(" > "));
-                  process.stdout.write(url);
-                  output += colors.underline(`${url}\n\n`);
-                  output += ` ${colors.red("•")} ${error}\n`;
-                  if (currentUrl == totalUrls) {
-                    process.stdout.write(output);
-                  }
+                  this.RenderUrl(url, currentUrl++, totalUrls, 1, {
+                    message: error,
+                  });
                 });
             })
             .catch((error) => {
-              currentUrl++;
-              process.stdout.write(colors.cyan(" > "));
-              process.stdout.write(url);
-              output += colors.underline(`${url}\n\n`);
-              output += ` ${colors.red("•")} ${error}\n`;
-              if (currentUrl == totalUrls) {
-                process.stdout.write(output);
-              }
+              this.RenderUrl(url, currentUrl++, totalUrls, 1, {
+                message: error,
+              });
             });
         });
       })
@@ -139,5 +113,29 @@ export class HTMLTester {
         console.error(error.message);
         process.exit(1);
       });
+  }
+
+  private RenderUrl(
+    url: string,
+    currentUrl: number,
+    totalUrls: number,
+    errors: number,
+    message?: HTMLErrorMessage
+  ) {
+    process.stdout.write(colors.cyan(" > "));
+    process.stdout.write(colors.yellow(` ${currentUrl}/${totalUrls} `));
+    process.stdout.write(url);
+    process.stdout.write(" - ");
+    if (errors == 0) {
+      console.log(colors.green("0 errors"));
+    } else {
+      console.log(colors.red(`${errors} errors`));
+    }
+    if (message) {
+      this.output.add(url, message);
+    }
+    if (currentUrl == totalUrls) {
+      this.output.render("console");
+    }
   }
 }

@@ -1,15 +1,15 @@
 import colors from "colors";
 
 type RenderType = "console" | "json" | "html";
+type OutputType = "a11y" | "html" | "link";
 
-type HTMLErrorMessage = {
-  line: number;
-  column: number;
+export type HTMLErrorMessage = {
   message: string;
-  url: string;
-  selector: string;
-  errorType: string;
-  ruleUrl: string;
+  line?: number;
+  column?: number;
+  selector?: string;
+  ruleId?: string;
+  ruleUrl?: string;
 };
 
 type OutputTypeHTML = {
@@ -34,9 +34,40 @@ type OutputTypeLink = {
 export class Output {
   private outputHTML: OutputTypeHTML[] = [];
   private outputLinks: OutputTypeLink[] = [];
-  constructor() {}
+  private outputType: OutputType;
+  constructor(type: OutputType) {
+    this.outputType = type;
+  }
 
-  public addHTML(url: string, errorMessage: HTMLErrorMessage) {
+  public add(url: string, errorMessage: HTMLErrorMessage) {
+    switch (this.outputType) {
+      case "a11y":
+        // this.addAlly(url, errorMessage);
+        break;
+      case "html":
+        this.addHTML(url, errorMessage);
+        break;
+      case "link":
+        // this.addLink(url, errorMessage);
+        break;
+    }
+  }
+
+  public render(type: RenderType) {
+    switch (this.outputType) {
+      case "a11y":
+        // this.renderAlly();
+        break;
+      case "html":
+        this.renderHTMLOutput(type);
+        break;
+      case "link":
+        // this.renderLink();
+        break;
+    }
+  }
+
+  private addHTML(url: string, errorMessage: HTMLErrorMessage) {
     const output = this.outputHTML.find((output) => output.url === url);
     if (output) {
       output.errorMessages.push(errorMessage);
@@ -48,10 +79,10 @@ export class Output {
     }
   }
 
-  public renderHTMLOutput(type: RenderType) {
+  private renderHTMLOutput(type: RenderType) {
     switch (type) {
       case "console":
-        return this.renderHTMLOutputConsole();
+        this.renderHTMLOutputConsole();
         break;
       case "json":
         return JSON.stringify(this.outputHTML);
@@ -64,7 +95,7 @@ export class Output {
   private renderHTMLOutputConsole() {
     let output = "";
     this.outputHTML.forEach((outputType: OutputTypeHTML) => {
-      output += colors.underline(
+      output += colors.underline.cyan(
         `${outputType.url} - ${outputType.errorMessages.length} errors\n\n`
       );
       outputType.errorMessages.forEach((message: HTMLErrorMessage) => {
@@ -72,15 +103,16 @@ export class Output {
         if (message.selector) {
           output += `   ${colors.yellow(message.selector)}\n`;
         }
-        output += `   ${colors.dim(message.errorType)} - line: ${
-          message.line
-        } | column: ${message.column}\n`;
+        if (message.ruleId && message.line && message.column) {
+          output += `   ${colors.dim(message.ruleId)} - line: ${
+            message.line
+          } | column: ${message.column}\n`;
+        }
         if (message.ruleUrl) {
-          output += `   ${colors.dim.underline.italic(
-            message.ruleUrl
-          )}\n`;
+          output += `   ${colors.dim.underline.italic(message.ruleUrl)}\n`;
         }
         output += "\n";
+      });
     });
     process.stdout.write(output);
   }
