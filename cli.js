@@ -65,19 +65,25 @@ class Output {
   }
   add(url, errorMessage) {
     switch (this.outputType) {
-      case "a11y":
+      case "a11yTester":
         break;
-      case "html":
+      case "htmlTester":
         this.addHTML(url, errorMessage);
+        break;
+      case "linkTester":
+        this.addBrokenLink(url, errorMessage);
         break;
     }
   }
   render(type) {
     switch (this.outputType) {
-      case "a11y":
+      case "a11yTester":
         break;
-      case "html":
+      case "htmlTester":
         this.renderHTMLOutput(type);
+        break;
+      case "linkTester":
+        this.renderBrokenLinkOutput(type);
         break;
     }
   }
@@ -89,6 +95,17 @@ class Output {
       this.outputHTML.push({
         url,
         errorMessages: [errorMessage]
+      });
+    }
+  }
+  addBrokenLink(url, errorMessage) {
+    const output = this.outputLinks.find((output2) => output2.url === url);
+    if (output) {
+      output.brokenLinks.push(errorMessage);
+    } else {
+      this.outputLinks.push({
+        url,
+        brokenLinks: [errorMessage]
       });
     }
   }
@@ -127,24 +144,80 @@ class Output {
         output += "\n";
       });
     });
-    process.stdout.write(output);
+    if (output.length > 0) {
+      process.stdout.write(output);
+      process.exit(1);
+    }
+  }
+  renderBrokenLinkOutput(type) {
+    switch (type) {
+      case "console":
+        this.renderBrokenLinkOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputLinks);
+    }
+  }
+  renderBrokenLinkOutputConsole() {
+    let output = "";
+    this.outputLinks.filter((f) => f.brokenLinks.find((bl) => bl.status != "200")).forEach((outputType) => {
+      output += colors.cyan(`> Errors for: ${outputType.url}
+
+`);
+      outputType.brokenLinks.filter((bl) => bl.status != "200").forEach((link) => {
+        output += ` ${colors.red("•")} ${colors.red(`${link.status}`)} : ${link.url}
+`;
+        output += `   ${colors.yellow(
+          link.linkText && link.linkText.length ? link.linkText : link.tag ?? ""
+        )} : 
+   ${colors.yellow(link.selector ?? "")}
+
+`;
+      });
+    });
+    if (output.length > 0) {
+      process.stdout.write(output);
+      process.exit(1);
+    }
   }
 }
 class HTMLTester {
   constructor() {
     __publicField(this, "output");
+    __publicField(this, "currentUrl", 1);
+    __publicField(this, "totalUrls", 0);
+    __publicField(this, "htmlvalidate");
+    __publicField(this, "external", false);
+    __publicField(this, "urls", []);
     colors.enable();
+    this.htmlvalidate = new HtmlValidate({
+      elements: ["html5"],
+      extends: ["html-validate:recommended"],
+      rules: {
+        "void-style": "off",
+        "no-trailing-whitespace": "off",
+        "no-inline-style": "off",
+        "wcag/h71": "off",
+        "wcag/h63": "off",
+        "script-type": "off",
+        "long-title": "off",
+        "no-raw-characters": "off",
+        "attribute-boolean-style": "off"
+      }
+    });
   }
-  test(sitemapUrl, url = "") {
-    let urls = [];
+  test(sitemapUrl, url = "", external = false) {
+    this.external = external;
+    this.urls = [];
     if (url.length > 0) {
-      urls = url.split(",");
+      this.urls = url.split(",");
     }
     if (sitemapUrl) {
       Promise.resolve().then(() => {
-        Helper.getUrlsFromSitemap(sitemapUrl, "", urls).then((urls2) => {
-          if (urls2) {
-            this.testUrls(urls2);
+        Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
+          if (urls) {
+            this.urls = urls;
+            this.testUrls();
           }
         });
       }).catch((error) => {
@@ -152,75 +225,67 @@ class HTMLTester {
         process.exit(1);
       });
     } else {
-      this.testUrls(urls);
+      this.testUrls();
     }
   }
-  testUrls(urls) {
+  testUrls() {
     Promise.resolve().then(() => {
       console.log(
-        colors.cyan.underline(`Running validation on ${urls.length} URLS`)
+        colors.cyan.underline(
+          `Running validation on ${this.urls.length} URLS`
+        )
       );
-      const htmlvalidate = new HtmlValidate({
-        elements: ["html5"],
-        extends: ["html-validate:recommended"],
-        rules: {
-          "void-style": "off",
-          "no-trailing-whitespace": "off",
-          "no-inline-style": "off",
-          "wcag/h71": "off",
-          "wcag/h63": "off",
-          "script-type": "off",
-          "long-title": "off",
-          "no-raw-characters": "off",
-          "attribute-boolean-style": "off"
-        }
-      });
-      this.output = new Output("html");
-      const totalUrls = urls.length;
-      let currentUrl = 1;
-      urls.forEach((url) => {
-        Promise.resolve().then(
-          () => fetch(url, {
-            signal: AbortSignal.timeout(1e4),
-            headers: {
-              "User-Agent": "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)"
-            }
-          })
-        ).then((response) => response.text()).then((body) => {
-          htmlvalidate.validateString(body).then((result) => {
-            if (result.valid) {
-              console.log(colors.green("0 errors"));
-              this.RenderUrl(url, currentUrl++, totalUrls, 0);
-            } else {
-              this.RenderUrl(
-                url,
-                currentUrl++,
-                totalUrls,
-                result.results[0].errorCount
-              );
-              result.results[0].messages.forEach((message) => {
-                this.output.add(url, message);
-              });
-            }
-          }).catch((error) => {
-            this.RenderUrl(url, currentUrl++, totalUrls, 1, {
-              message: error
-            });
-          });
-        }).catch((error) => {
-          this.RenderUrl(url, currentUrl++, totalUrls, 1, {
-            message: error
-          });
+      this.output = new Output("htmlTester");
+      this.totalUrls = this.urls.length;
+      this.currentUrl = 0;
+      if (this.external && this.urls.length > 0) {
+        this.testUrl(this.urls.pop());
+      } else {
+        this.urls.forEach((url) => {
+          this.testUrl(url);
         });
-      });
+      }
     }).catch((error) => {
       console.error(error.message);
       process.exit(1);
     });
   }
-  RenderUrl(url, currentUrl, totalUrls, errors, message) {
+  testUrl(url) {
+    Promise.resolve().then(
+      () => fetch(url, {
+        signal: AbortSignal.timeout(1e4),
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)"
+        }
+      })
+    ).then((response) => response.text()).then((body) => {
+      this.htmlvalidate.validateString(body).then((result) => {
+        if (result.valid) {
+          console.log(colors.green("0 errors"));
+          this.RenderUrl(url, 0);
+        } else {
+          this.RenderUrl(url, result.results[0].errorCount);
+          result.results[0].messages.forEach((message) => {
+            this.output.add(url, message);
+          });
+        }
+      }).catch((error) => {
+        this.RenderUrl(url, 1, {
+          message: error
+        });
+      });
+    }).catch((error) => {
+      this.RenderUrl(url, 1, {
+        message: error
+      });
+    });
+  }
+  RenderUrl(url, errors, message) {
+    this.currentUrl++;
     process.stdout.write(colors.cyan(" > "));
-    process.stdout.write(colors.yellow(` ${currentUrl}/${totalUrls} `));
+    process.stdout.write(
+      colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
+    );
     process.stdout.write(url);
     process.stdout.write(" - ");
     if (errors == 0) {
@@ -231,8 +296,13 @@ class HTMLTester {
     if (message) {
       this.output.add(url, message);
     }
-    if (currentUrl == totalUrls) {
+    if (this.currentUrl == this.totalUrls) {
       this.output.render("console");
+    }
+    if (this.external && this.urls.length > 0) {
+      setTimeout(() => {
+        this.testUrl(this.urls.pop());
+      }, 100);
     }
   }
 }
@@ -260,8 +330,33 @@ class A11yTester {
     }
   }
   testUrls(urls) {
+    function cliReporter(options = {}, config = {}) {
+      console.log("test");
+      console.log(options);
+      const configLog = Object.assign({}, config.log);
+      console.log("test");
+      const log = configLog;
+      log.log("TEST");
+      return {
+        beforeAll(urls2) {
+          log.info(urls2);
+        },
+        results(testResults, reportConfig) {
+          log.info(testResults, reportConfig);
+        },
+        error(error, url) {
+          log.info(error, url);
+        },
+        afterAll(report) {
+          log.info(report);
+        }
+      };
+    }
     Promise.resolve().then(() => {
-      return pa11yCi(urls, { log: console });
+      return pa11yCi(urls, {
+        log: console,
+        reporters: [[cliReporter, { test: "test" }]]
+      });
     }).catch((error) => {
       console.error(error.message);
       process.exit(1);
@@ -270,18 +365,24 @@ class A11yTester {
 }
 class LinkTester {
   constructor() {
-  }
-  test(sitemapUrl, url = "") {
+    __publicField(this, "output");
+    __publicField(this, "external", false);
+    __publicField(this, "urls", []);
     colors.enable();
-    let urls = [];
+  }
+  test(sitemapUrl, url = "", external = false) {
+    this.external = external;
+    this.output = new Output("linkTester");
+    this.urls = [];
     if (url.length > 0) {
-      urls = url.split(",");
+      this.urls = url.split(",");
     }
     if (sitemapUrl) {
       Promise.resolve().then(() => {
-        Helper.getUrlsFromSitemap(sitemapUrl, "", urls).then((urls2) => {
-          if (urls2) {
-            this.testUrls(urls2);
+        Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
+          if (urls) {
+            this.urls = urls;
+            this.testUrls();
           }
         });
       }).catch((error) => {
@@ -289,40 +390,43 @@ class LinkTester {
         process.exit(1);
       });
     } else {
-      this.testUrls(urls);
+      this.testUrls();
     }
   }
-  testUrls(urls) {
+  testUrls() {
     Promise.resolve().then(() => {
       console.log(
-        colors.cyan.underline(`Running validation on ${urls.length} URLS
-`)
+        colors.cyan.underline(
+          `Running validation on ${this.urls.length} URLS
+`
+        )
       );
-      let output = "";
       let uniqueLinks = [];
-      const baseUrl = urls[0].split("/")[0] + "//" + urls[0].split("/")[2];
-      this.testLinks(urls, baseUrl, uniqueLinks, output);
+      const baseUrl = this.urls[0].split("/")[0] + "//" + this.urls[0].split("/")[2];
+      this.testLinks(baseUrl, uniqueLinks);
     }).catch((error) => {
       console.error(error.message);
       process.exit(1);
     });
   }
-  testLinks(urls, baseUrl, uniqueLinks, output) {
-    this.testLink(urls[0], baseUrl, uniqueLinks).then((result) => {
-      output += result.output;
+  testLinks(baseUrl, uniqueLinks) {
+    this.testLink(this.urls[0], baseUrl, uniqueLinks).then((result) => {
       uniqueLinks = result.uniqueLinks;
-      urls.shift();
-      if (urls.length > 0) {
-        this.testLinks(urls, baseUrl, uniqueLinks, output);
+      this.urls.shift();
+      if (this.urls.length > 0) {
+        if (this.external) {
+          setTimeout(() => {
+            this.testLinks(baseUrl, uniqueLinks);
+          }, 100);
+        } else {
+          this.testLinks(baseUrl, uniqueLinks);
+        }
       } else {
-        process.stdout.write("\n\n");
-        process.stdout.write(output);
-        process.exit(0);
+        this.output.render("console");
       }
     });
   }
   testLink(url, baseUrl, uniqueLinks) {
-    let output = "";
     return new Promise((resolveTest, rejectTest) => {
       Promise.resolve().then(
         () => fetch(url, {
@@ -334,9 +438,6 @@ class LinkTester {
         Promise.resolve().then(() => {
           let totalErrors = 0;
           let urlsChecked = 0;
-          let urlErrors = colors.cyan(`> Errors for: ${url}
-
-`);
           const $ = cheerio.load(body);
           uniqueSelector.init($);
           const elementsAnchors = $("a[href]").toArray().filter((element) => {
@@ -424,11 +525,11 @@ class LinkTester {
           if (elements.length == 0) {
             bar.stop();
             resolveTest({
-              output,
               uniqueLinks
             });
           }
-          elements.map((element) => {
+          const totalElements = elements.length;
+          const checkLink = (element) => {
             const dataUrl = $(element).attr("data-url");
             if (!dataUrl)
               return;
@@ -441,58 +542,62 @@ class LinkTester {
               }
             }).then((response) => {
               if (response.status >= 400) {
-                urlErrors += ` ${colors.red("•")} ${colors.red(
-                  `${response.status}`
-                )} : ${$(element).attr("data-url")}
-`;
-                urlErrors += `   ${colors.yellow(
-                  $(element).text().length ? $(element).text() : `<${element.tagName}>`
-                )} : ${colors.yellow(
-                  $(element).getUniqueSelector()
-                )}
-
-`;
+                this.output.add(url, {
+                  url: dataUrl,
+                  status: response.status.toString(),
+                  tag: `<${element.tagName}>`,
+                  selector: $(element).getUniqueSelector(),
+                  linkText: $(element).text()
+                });
                 totalErrors++;
+              } else {
+                this.output.add(url, {
+                  url: dataUrl,
+                  status: response.status.toString()
+                });
               }
               urlsChecked++;
               bar.update(urlsChecked, { errors: totalErrors });
-              if (urlsChecked == elements.length) {
-                if (totalErrors > 0) {
-                  output += urlErrors;
-                }
+              if (urlsChecked == totalElements) {
                 bar.stop();
                 resolveTest({
-                  output,
                   uniqueLinks
                 });
               }
             }).catch((error) => {
-              urlErrors += ` ${colors.red("•")} ${colors.red(
-                error.cause ? error.cause.code : error
-              )} : ${$(element).attr("data-url")}
-`;
-              urlErrors += `   ${colors.yellow(
-                $(element).text().length ? $(element).text() : `<${element.tagName}>`
-              )} : ${colors.yellow(
-                $(element).getUniqueSelector()
-              )}
-
-`;
+              this.output.add(url, {
+                url: dataUrl,
+                status: error.cause ? error.cause.code : error,
+                tag: `<${element.tagName}>`,
+                selector: $(element).getUniqueSelector(),
+                linkText: $(element).text()
+              });
               totalErrors++;
               urlsChecked++;
               bar.update(urlsChecked, { errors: totalErrors });
-              if (urlsChecked == elements.length) {
-                if (totalErrors > 0) {
-                  output += urlErrors;
-                }
+              if (urlsChecked == totalElements) {
                 bar.stop();
                 resolveTest({
-                  output,
                   uniqueLinks
                 });
               }
             });
-          });
+          };
+          if (this.external) {
+            const slowCheck = () => {
+              checkLink(elements.pop());
+              if (elements.length > 0) {
+                setTimeout(slowCheck, 100);
+              }
+            };
+            if (elements.length > 0) {
+              slowCheck();
+            }
+          } else {
+            elements.map((element) => {
+              checkLink(element);
+            });
+          }
         });
       }).catch((error) => {
         rejectTest(error);
@@ -618,7 +723,7 @@ class LocalFlow {
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await htmlTester.test(externalUrl.value);
+            await htmlTester.test(externalUrl.value, "", true);
             runData.url = externalUrl.value;
           }
         }
@@ -656,12 +761,12 @@ class LocalFlow {
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await linksTester.test(externalUrl.value);
+            await linksTester.test(externalUrl.value, "", true);
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await linksTester.test(null, url.value);
+          await linksTester.test(null, url.value, true);
           runData.url = url.value;
         }
       }

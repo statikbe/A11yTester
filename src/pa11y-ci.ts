@@ -36,7 +36,9 @@ export class A11yTester {
     Promise.resolve()
       .then(() => {
         // Actually run Pa11y CI
-        return pa11yCi(urls, { log: console });
+        return pa11yCi(urls, {
+          log: console,
+        });
       })
       .catch((error) => {
         // Handle any errors

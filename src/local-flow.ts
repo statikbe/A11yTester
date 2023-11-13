@@ -131,7 +131,7 @@ export class LocalFlow {
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await htmlTester.test(externalUrl.value);
+            await htmlTester.test(externalUrl.value, "", true);
             runData.url = externalUrl.value;
           }
         }
@@ -171,12 +171,12 @@ export class LocalFlow {
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await linksTester.test(externalUrl.value);
+            await linksTester.test(externalUrl.value, "", true);
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await linksTester.test(null, url.value);
+          await linksTester.test(null, url.value, true);
           runData.url = url.value;
         }
       }

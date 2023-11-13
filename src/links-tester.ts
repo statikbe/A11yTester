@@ -6,23 +6,32 @@ import { Helper } from "./helpers";
 import * as cheerio from "cheerio";
 import * as uniqueSelector from "cheerio-get-css-selector";
 import * as cliProgress from "cli-progress";
+import { Output } from "./output";
 
 export class LinkTester {
-  constructor() {}
-  public test(sitemapUrl: string | null, url = "") {
-    colors.enable();
+  private output: Output;
+  private external = false;
+  private urls: string[] = [];
 
-    let urls: string[] = [];
+  constructor() {
+    colors.enable();
+  }
+
+  public test(sitemapUrl: string | null, url = "", external: boolean = false) {
+    this.external = external;
+    this.output = new Output("linkTester");
+    this.urls = [];
     if (url.length > 0) {
-      urls = url.split(",");
+      this.urls = url.split(",");
     }
 
     if (sitemapUrl) {
       Promise.resolve()
         .then(() => {
-          Helper.getUrlsFromSitemap(sitemapUrl, "", urls).then((urls) => {
+          Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
             if (urls) {
-              this.testUrls(urls);
+              this.urls = urls;
+              this.testUrls();
             }
           });
         })
@@ -32,22 +41,24 @@ export class LinkTester {
           process.exit(1);
         });
     } else {
-      this.testUrls(urls);
+      this.testUrls();
     }
   }
 
-  private testUrls(urls: string[]) {
+  private testUrls() {
     Promise.resolve()
       .then(() => {
         console.log(
-          colors.cyan.underline(`Running validation on ${urls.length} URLS\n`)
+          colors.cyan.underline(
+            `Running validation on ${this.urls.length} URLS\n`
+          )
         );
-        let output = "";
         let uniqueLinks: string[] = [];
-        const baseUrl = urls[0].split("/")[0] + "//" + urls[0].split("/")[2];
+        const baseUrl =
+          this.urls[0].split("/")[0] + "//" + this.urls[0].split("/")[2];
 
         // Run the tests
-        this.testLinks(urls, baseUrl, uniqueLinks, output);
+        this.testLinks(baseUrl, uniqueLinks);
       })
       .catch((error) => {
         // Handle any errors
@@ -56,22 +67,20 @@ export class LinkTester {
       });
   }
 
-  private testLinks(
-    urls: string[],
-    baseUrl: string,
-    uniqueLinks: string[],
-    output: string
-  ) {
-    this.testLink(urls[0], baseUrl, uniqueLinks).then((result: any) => {
-      output += result.output;
+  private testLinks(baseUrl: string, uniqueLinks: string[]) {
+    this.testLink(this.urls[0], baseUrl, uniqueLinks).then((result: any) => {
       uniqueLinks = result.uniqueLinks;
-      urls.shift();
-      if (urls.length > 0) {
-        this.testLinks(urls, baseUrl, uniqueLinks, output);
+      this.urls.shift();
+      if (this.urls.length > 0) {
+        if (this.external) {
+          setTimeout(() => {
+            this.testLinks(baseUrl, uniqueLinks);
+          }, 100);
+        } else {
+          this.testLinks(baseUrl, uniqueLinks);
+        }
       } else {
-        process.stdout.write("\n\n");
-        process.stdout.write(output);
-        process.exit(0);
+        this.output.render("console");
       }
     });
   }
@@ -94,7 +103,7 @@ export class LinkTester {
           Promise.resolve().then(() => {
             let totalErrors = 0;
             let urlsChecked = 0;
-            let urlErrors = colors.cyan(`> Errors for: ${url}\n\n`);
+            // let urlErrors = colors.cyan(`> Errors for: ${url}\n\n`);
 
             const $ = cheerio.load(body);
             uniqueSelector.init($);
@@ -210,12 +219,13 @@ export class LinkTester {
             if (elements.length == 0) {
               bar.stop();
               resolveTest({
-                output: output,
                 uniqueLinks: uniqueLinks,
               });
             }
 
-            elements.map((element) => {
+            const totalElements = elements.length;
+
+            const checkLink = (element: any) => {
               const dataUrl = $(element).attr("data-url");
               if (!dataUrl) return;
               if (!element) return;
@@ -228,57 +238,64 @@ export class LinkTester {
               })
                 .then((response) => {
                   if (response.status >= 400) {
-                    urlErrors += ` ${colors.red("•")} ${colors.red(
-                      `${response.status}`
-                    )} : ${$(element).attr("data-url")}\n`;
-                    urlErrors += `   ${colors.yellow(
-                      $(element).text().length
-                        ? $(element).text()
-                        : `<${element.tagName}>`
-                    )} : ${colors.yellow(
-                      ($(element) as any).getUniqueSelector()
-                    )}\n\n`;
+                    this.output.add(url, {
+                      url: dataUrl,
+                      status: response.status.toString(),
+                      tag: `<${element.tagName}>`,
+                      selector: ($(element) as any).getUniqueSelector(),
+                      linkText: $(element).text(),
+                    });
                     totalErrors++;
+                  } else {
+                    this.output.add(url, {
+                      url: dataUrl,
+                      status: response.status.toString(),
+                    });
                   }
                   urlsChecked++;
                   bar.update(urlsChecked, { errors: totalErrors });
-                  if (urlsChecked == elements.length) {
-                    if (totalErrors > 0) {
-                      output += urlErrors;
-                    }
+                  if (urlsChecked == totalElements) {
                     bar.stop();
                     resolveTest({
-                      output: output,
                       uniqueLinks: uniqueLinks,
                     });
                   }
                 })
                 .catch((error) => {
-                  urlErrors += ` ${colors.red("•")} ${colors.red(
-                    error.cause ? error.cause.code : error
-                  )} : ${$(element).attr("data-url")}\n`;
-                  urlErrors += `   ${colors.yellow(
-                    $(element).text().length
-                      ? $(element).text()
-                      : `<${element.tagName}>`
-                  )} : ${colors.yellow(
-                    ($(element) as any).getUniqueSelector()
-                  )}\n\n`;
+                  this.output.add(url, {
+                    url: dataUrl,
+                    status: error.cause ? error.cause.code : error,
+                    tag: `<${element.tagName}>`,
+                    selector: ($(element) as any).getUniqueSelector(),
+                    linkText: $(element).text(),
+                  });
                   totalErrors++;
                   urlsChecked++;
                   bar.update(urlsChecked, { errors: totalErrors });
-                  if (urlsChecked == elements.length) {
-                    if (totalErrors > 0) {
-                      output += urlErrors;
-                    }
+                  if (urlsChecked == totalElements) {
                     bar.stop();
                     resolveTest({
-                      output: output,
                       uniqueLinks: uniqueLinks,
                     });
                   }
                 });
-            });
+            };
+
+            if (this.external) {
+              const slowCheck = () => {
+                checkLink(elements.pop());
+                if (elements.length > 0) {
+                  setTimeout(slowCheck, 100);
+                }
+              };
+              if (elements.length > 0) {
+                slowCheck();
+              }
+            } else {
+              elements.map((element) => {
+                checkLink(element);
+              });
+            }
           });
         })
         .catch((error) => {
