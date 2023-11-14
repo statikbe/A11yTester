@@ -824,12 +824,12 @@ class LocalFlow {
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await a11yTester.test(externalUrl.value);
+            await a11yTester.test(externalUrl.value, "", true);
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await a11yTester.test(null, url.value);
+          await a11yTester.test(null, url.value, true);
           runData.url = url.value;
         }
       }
