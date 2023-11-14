@@ -15,6 +15,7 @@ export class LinkTester {
 
   constructor() {
     colors.enable();
+    this.output = new Output("linkTester");
   }
 
   public test(sitemapUrl: string | null, url = "", external: boolean = false) {

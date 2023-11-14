@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
     "build-cli": "vite build --config vite.config.cli.js",
+    "dev": "vite",
     "build": "tsc && vite build",
     "cli": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && node cli.js"
   },
@@ -15,7 +15,7 @@
     "cli-progress": "^3.12.0",
     "colors": "^1.4.0",
     "html-validate": "^8.7.1",
-    "pa11y-ci": "^3.0.1",
+    "pa11y": "^6.2.3",
     "prompts": "^2.4.2",
     "typescript": "^5.2.2",
     "vite": "^4.4.5",

@@ -9,7 +9,7 @@ import * as fs from "fs";
 import { HtmlValidate } from "html-validate/node";
 import colors from "colors";
 import * as cheerio from "cheerio";
-import pa11yCi from "pa11y-ci";
+import * as pa11y from "pa11y";
 import * as uniqueSelector from "cheerio-get-css-selector";
 import * as cliProgress from "cli-progress";
 const _Helper = class _Helper {
@@ -57,15 +57,17 @@ __publicField(_Helper, "getUrlsFromSitemap", (sitemapUrl, sitemapExclude, urls) 
 });
 let Helper = _Helper;
 class Output {
-  constructor(type) {
+  constructor(type2) {
     __publicField(this, "outputHTML", []);
     __publicField(this, "outputLinks", []);
+    __publicField(this, "outputA11y", []);
     __publicField(this, "outputType");
-    this.outputType = type;
+    this.outputType = type2;
   }
   add(url, errorMessage) {
     switch (this.outputType) {
       case "a11yTester":
+        this.addAlly(url, errorMessage);
         break;
       case "htmlTester":
         this.addHTML(url, errorMessage);
@@ -75,15 +77,16 @@ class Output {
         break;
     }
   }
-  render(type) {
+  render(type2) {
     switch (this.outputType) {
       case "a11yTester":
+        this.renderA11yOutput(type2);
         break;
       case "htmlTester":
-        this.renderHTMLOutput(type);
+        this.renderHTMLOutput(type2);
         break;
       case "linkTester":
-        this.renderBrokenLinkOutput(type);
+        this.renderBrokenLinkOutput(type2);
         break;
     }
   }
@@ -109,8 +112,19 @@ class Output {
       });
     }
   }
-  renderHTMLOutput(type) {
-    switch (type) {
+  addAlly(url, errorMessage) {
+    const output = this.outputA11y.find((output2) => output2.url === url);
+    if (output) {
+      output.errorMessages.push(errorMessage);
+    } else {
+      this.outputA11y.push({
+        url,
+        errorMessages: [errorMessage]
+      });
+    }
+  }
+  renderHTMLOutput(type2) {
+    switch (type2) {
       case "console":
         this.renderHTMLOutputConsole();
         break;
@@ -146,11 +160,11 @@ class Output {
     });
     if (output.length > 0) {
       process.stdout.write(output);
-      process.exit(1);
+      process.exit();
     }
   }
-  renderBrokenLinkOutput(type) {
-    switch (type) {
+  renderBrokenLinkOutput(type2) {
+    switch (type2) {
       case "console":
         this.renderBrokenLinkOutputConsole();
         break;
@@ -177,7 +191,47 @@ class Output {
     });
     if (output.length > 0) {
       process.stdout.write(output);
-      process.exit(1);
+      process.exit();
+    }
+  }
+  renderA11yOutput(type2) {
+    switch (type2) {
+      case "console":
+        this.renderA11yOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputA11y);
+    }
+  }
+  renderA11yOutputConsole() {
+    let output = "";
+    this.outputA11y.forEach((outputType) => {
+      output += colors.cyan(`
+> Errors for: ${outputType.url}
+
+`);
+      outputType.errorMessages.forEach((message) => {
+        output += `------------------------
+
+`;
+        output += `${colors.red(`${message.message}`)}
+
+`;
+        if (message.selector) {
+          output += `${colors.yellow(message.selector)}
+
+`;
+        }
+        if (message.context) {
+          output += `${colors.gray(message.context)}
+
+`;
+        }
+      });
+    });
+    if (output.length > 0) {
+      process.stdout.write(output);
+      process.exit();
     }
   }
 }
@@ -190,6 +244,7 @@ class HTMLTester {
     __publicField(this, "external", false);
     __publicField(this, "urls", []);
     colors.enable();
+    this.output = new Output("htmlTester");
     this.htmlvalidate = new HtmlValidate({
       elements: ["html5"],
       extends: ["html-validate:recommended"],
@@ -308,17 +363,25 @@ class HTMLTester {
 }
 class A11yTester {
   constructor() {
+    __publicField(this, "external", false);
+    __publicField(this, "output");
+    __publicField(this, "currentUrl", 1);
+    __publicField(this, "totalUrls", 0);
+    __publicField(this, "urls", []);
+    colors.enable();
+    this.output = new Output("a11yTester");
   }
-  test(sitemapUrl, url = "") {
-    let urls = [];
+  test(sitemapUrl, url = "", external = false) {
+    this.external = external;
+    this.urls = [];
     if (url.length > 0) {
-      urls = url.split(",");
+      this.urls = url.split(",");
     }
     if (sitemapUrl) {
       Promise.resolve().then(() => {
-        Helper.getUrlsFromSitemap(sitemapUrl, "", urls).then((urls2) => {
-          if (urls2) {
-            this.testUrls(urls2);
+        Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
+          if (urls) {
+            this.testUrls();
           }
         });
       }).catch((error) => {
@@ -326,40 +389,58 @@ class A11yTester {
         process.exit(1);
       });
     } else {
-      this.testUrls(urls);
+      this.testUrls();
     }
   }
-  testUrls(urls) {
-    function cliReporter(options = {}, config = {}) {
-      console.log("test");
-      console.log(options);
-      const configLog = Object.assign({}, config.log);
-      console.log("test");
-      const log = configLog;
-      log.log("TEST");
-      return {
-        beforeAll(urls2) {
-          log.info(urls2);
-        },
-        results(testResults, reportConfig) {
-          log.info(testResults, reportConfig);
-        },
-        error(error, url) {
-          log.info(error, url);
-        },
-        afterAll(report) {
-          log.info(report);
-        }
-      };
-    }
-    Promise.resolve().then(() => {
-      return pa11yCi(urls, {
-        log: console,
-        reporters: [[cliReporter, { test: "test" }]]
+  testUrls() {
+    console.log(
+      colors.cyan.underline(`Running validation on ${this.urls.length} URLS
+`)
+    );
+    this.output = new Output("a11yTester");
+    this.totalUrls = this.urls.length;
+    this.currentUrl = 0;
+    if (this.external && this.urls.length > 0) {
+      this.testUrl(this.urls.pop());
+    } else {
+      const promesses = [];
+      this.urls.forEach((url) => {
+        promesses.push(this.testUrl(url));
       });
-    }).catch((error) => {
-      console.error(error.message);
-      process.exit(1);
+      Promise.all(promesses).then(() => {
+        this.output.render("console");
+      });
+    }
+  }
+  testUrl(url) {
+    return pa11y.default(url, {}).then((results) => {
+      this.currentUrl++;
+      process.stdout.write(colors.cyan(" > "));
+      process.stdout.write(
+        colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
+      );
+      process.stdout.write(url);
+      process.stdout.write(" - ");
+      if (results.issues.length == 0) {
+        console.log(colors.green("0 errors"));
+      } else {
+        console.log(colors.red(`${results.issues.length} errors`));
+      }
+      results.issues.forEach((issue) => {
+        this.output.add(url, {
+          message: issue.message,
+          selector: issue.selector,
+          context: issue.context
+        });
+      });
+      if (this.external && this.urls.length > 0) {
+        setTimeout(() => {
+          this.testUrl(this.urls.pop());
+        }, 100);
+      }
+      if (this.external && this.urls.length == 0) {
+        this.output.render("console");
+      }
     });
   }
 }
@@ -369,6 +450,7 @@ class LinkTester {
     __publicField(this, "external", false);
     __publicField(this, "urls", []);
     colors.enable();
+    this.output = new Output("linkTester");
   }
   test(sitemapUrl, url = "", external = false) {
     this.external = external;

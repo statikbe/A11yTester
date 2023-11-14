@@ -16,6 +16,7 @@ export class HTMLTester {
 
   constructor() {
     colors.enable();
+    this.output = new Output("htmlTester");
     this.htmlvalidate = new HtmlValidate({
       elements: ["html5"],
       extends: ["html-validate:recommended"],
