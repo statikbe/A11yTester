@@ -4,7 +4,7 @@
 import { HtmlValidate } from "html-validate/node";
 import colors from "colors";
 import { Helper } from "./helpers";
-import { HTMLErrorMessage, Output } from "./output";
+import { HTMLErrorMessage, Output, RenderType } from "./output";
 
 export class HTMLTester {
   private output: Output;
@@ -13,6 +13,8 @@ export class HTMLTester {
   private htmlvalidate: HtmlValidate;
   private external = false;
   private urls: string[] = [];
+  private outputType: RenderType = "cli";
+  private verbose = true;
 
   constructor() {
     colors.enable();
@@ -34,8 +36,17 @@ export class HTMLTester {
     });
   }
 
-  public test(sitemapUrl: string | null, url = "", external: boolean = false) {
+  public test(
+    sitemapUrl: string | null,
+    url = "",
+    external: boolean = false,
+    output: RenderType = "cli",
+    verbose: boolean = true
+  ) {
     this.external = external;
+    this.outputType = output;
+    this.verbose = verbose;
+
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
@@ -64,11 +75,13 @@ export class HTMLTester {
   private testUrls() {
     Promise.resolve()
       .then(() => {
-        console.log(
-          colors.cyan.underline(
-            `Running validation on ${this.urls.length} URLS`
-          )
-        );
+        if (this.verbose) {
+          console.log(
+            colors.cyan.underline(
+              `Running validation on ${this.urls.length} URLS`
+            )
+          );
+        }
         this.output = new Output("htmlTester");
         this.totalUrls = this.urls.length;
         this.currentUrl = 0;
@@ -106,13 +119,15 @@ export class HTMLTester {
           .validateString(body)
           .then((result: any) => {
             if (result.valid) {
-              console.log(colors.green("0 errors"));
+              if (this.verbose) {
+                console.log(colors.green("0 errors"));
+              }
               this.RenderUrl(url, 0);
             } else {
-              this.RenderUrl(url, result.results[0].errorCount);
               result.results[0].messages.forEach((message: any) => {
                 this.output.add(url, message);
               });
+              this.RenderUrl(url, result.results[0].errorCount);
             }
           })
           .catch((error: string) => {
@@ -130,23 +145,26 @@ export class HTMLTester {
 
   private RenderUrl(url: string, errors: number, message?: HTMLErrorMessage) {
     this.currentUrl++;
-    process.stdout.write(colors.cyan(" > "));
-    process.stdout.write(
-      colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
-    );
-    process.stdout.write(url);
-    process.stdout.write(" - ");
-    if (errors == 0) {
-      console.log(colors.green("0 errors"));
-    } else {
-      console.log(colors.red(`${errors} errors`));
+    if (this.verbose) {
+      process.stdout.write(colors.cyan(" > "));
+      process.stdout.write(
+        colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
+      );
+      process.stdout.write(url);
+      process.stdout.write(" - ");
+      if (errors == 0) {
+        console.log(colors.green("0 errors"));
+      } else {
+        console.log(colors.red(`${errors} errors`));
+      }
     }
+
     if (message) {
       this.output.add(url, message);
     }
 
     if (this.currentUrl == this.totalUrls) {
-      this.output.render("console");
+      this.output.render(this.outputType);
     }
 
     if (this.external && this.urls.length > 0) {

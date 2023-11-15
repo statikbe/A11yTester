@@ -1,11 +1,18 @@
 import prompts from "prompts";
 import * as fs from "fs";
 import { HTMLTester } from "./html-tester";
-import { A11yTester } from "./pa11y-ci";
+import { A11yTester } from "./a11y-tester";
 import { LinkTester } from "./links-tester";
+import { RenderType } from "./output";
 
 export class LocalFlow {
-  constructor() {
+  private output: RenderType;
+  private verbose: boolean;
+
+  constructor(output: RenderType = "cli", verbose: boolean = true) {
+    this.output = output;
+    this.verbose = verbose;
+
     let runData = null;
     fs.readFile("./data/session.json", (err: any, buf: any) => {
       if (err) {
@@ -127,16 +134,31 @@ export class LocalFlow {
           if (sitemap.value === "project") {
             await htmlTester.test(
               `http://${project.value}.local.statik.be/sitemap.xml`,
-              ""
+              "",
+              false,
+              this.output,
+              this.verbose
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await htmlTester.test(externalUrl.value, "", true);
+            await htmlTester.test(
+              externalUrl.value,
+              "",
+              true,
+              this.output,
+              this.verbose
+            );
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await htmlTester.test(null, url.value);
+          await htmlTester.test(
+            null,
+            url.value,
+            true,
+            this.output,
+            this.verbose
+          );
           runData.url = url.value;
         }
       }
@@ -147,16 +169,31 @@ export class LocalFlow {
           if (sitemap.value === "project") {
             await a11yTester.test(
               `http://${project.value}.local.statik.be/sitemap.xml`,
-              ""
+              "",
+              false,
+              this.output,
+              this.verbose
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await a11yTester.test(externalUrl.value, "", true);
+            await a11yTester.test(
+              externalUrl.value,
+              "",
+              true,
+              this.output,
+              this.verbose
+            );
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await a11yTester.test(null, url.value, true);
+          await a11yTester.test(
+            null,
+            url.value,
+            true,
+            this.output,
+            this.verbose
+          );
           runData.url = url.value;
         }
       }
@@ -167,16 +204,31 @@ export class LocalFlow {
           if (sitemap.value === "project") {
             await linksTester.test(
               `http://${project.value}.local.statik.be/sitemap.xml`,
-              ""
+              "",
+              false,
+              this.output,
+              this.verbose
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await linksTester.test(externalUrl.value, "", true);
+            await linksTester.test(
+              externalUrl.value,
+              "",
+              true,
+              this.output,
+              this.verbose
+            );
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await linksTester.test(null, url.value, true);
+          await linksTester.test(
+            null,
+            url.value,
+            true,
+            this.output,
+            this.verbose
+          );
           runData.url = url.value;
         }
       }

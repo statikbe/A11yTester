@@ -5,7 +5,7 @@
 import * as pa11y from "pa11y";
 import colors from "colors";
 import { Helper } from "./helpers";
-import { Output } from "./output";
+import { Output, RenderType } from "./output";
 
 export class A11yTester {
   private external = false;
@@ -13,13 +13,23 @@ export class A11yTester {
   private currentUrl = 1;
   private totalUrls = 0;
   private urls: string[] = [];
+  private outputType: RenderType = "cli";
+  private verbose = true;
 
   constructor() {
     colors.enable();
     this.output = new Output("a11yTester");
   }
 
-  public test(sitemapUrl: string | null, url = "", external: boolean = false) {
+  public test(
+    sitemapUrl: string | null,
+    url = "",
+    external: boolean = false,
+    output: RenderType = "cli",
+    verbose: boolean = true
+  ) {
+    this.outputType = output;
+    this.verbose = verbose;
     this.external = external;
     this.urls = [];
     if (url.length > 0) {
@@ -46,9 +56,13 @@ export class A11yTester {
   }
 
   private testUrls() {
-    console.log(
-      colors.cyan.underline(`Running validation on ${this.urls.length} URLS\n`)
-    );
+    if (this.verbose) {
+      console.log(
+        colors.cyan.underline(
+          `Running validation on ${this.urls.length} URLS\n`
+        )
+      );
+    }
 
     this.output = new Output("a11yTester");
     this.totalUrls = this.urls.length;
@@ -62,7 +76,7 @@ export class A11yTester {
         promesses.push(this.testUrl(url));
       });
       Promise.all(promesses).then(() => {
-        this.output.render("console");
+        this.output.render(this.outputType);
       });
     }
   }
@@ -70,16 +84,18 @@ export class A11yTester {
   private testUrl(url: string): Promise<any> {
     return pa11y.default(url, {}).then((results: any) => {
       this.currentUrl++;
-      process.stdout.write(colors.cyan(" > "));
-      process.stdout.write(
-        colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
-      );
-      process.stdout.write(url);
-      process.stdout.write(" - ");
-      if (results.issues.length == 0) {
-        console.log(colors.green("0 errors"));
-      } else {
-        console.log(colors.red(`${results.issues.length} errors`));
+      if (this.verbose) {
+        process.stdout.write(colors.cyan(" > "));
+        process.stdout.write(
+          colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
+        );
+        process.stdout.write(url);
+        process.stdout.write(" - ");
+        if (results.issues.length == 0) {
+          console.log(colors.green("0 errors"));
+        } else {
+          console.log(colors.red(`${results.issues.length} errors`));
+        }
       }
 
       results.issues.forEach((issue: any) => {
@@ -96,7 +112,7 @@ export class A11yTester {
         }, 100);
       }
       if (this.external && this.urls.length == 0) {
-        this.output.render("console");
+        this.output.render(this.outputType);
       }
     });
   }

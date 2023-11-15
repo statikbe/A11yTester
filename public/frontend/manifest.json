@@ -1,0 +1,14 @@
+{
+  "src/frontend/js/site.css": {
+    "file": "site-7d320d12.css",
+    "src": "src/frontend/js/site.css"
+  },
+  "src/frontend/js/site.ts": {
+    "css": [
+      "site-7d320d12.css"
+    ],
+    "file": "site-af651b80.js",
+    "isEntry": true,
+    "src": "src/frontend/js/site.ts"
+  }
+}

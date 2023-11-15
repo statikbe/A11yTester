@@ -1,8 +1,11 @@
 import colors from "colors";
-import { type } from "os";
+import * as fs from "fs";
+import mustache from "mustache";
+import open from "open";
+import { Helper } from "./helpers";
 
-type RenderType = "console" | "json" | "html";
-type OutputType = "a11yTester" | "htmlTester" | "linkTester";
+export type RenderType = "cli" | "json" | "html";
+export type OutputType = "a11yTester" | "htmlTester" | "linkTester";
 
 export type HTMLErrorMessage = {
   message: string;
@@ -13,12 +16,12 @@ export type HTMLErrorMessage = {
   ruleUrl?: string;
 };
 
-type OutputTypeHTML = {
+export type OutputTypeHTML = {
   url: string;
   errorMessages: HTMLErrorMessage[];
 };
 
-type BrokenLink = {
+export type BrokenLink = {
   url: string;
   status: string;
   tag?: string;
@@ -26,18 +29,18 @@ type BrokenLink = {
   linkText?: string;
 };
 
-type OutputTypeLink = {
+export type OutputTypeLink = {
   url: string;
   brokenLinks: BrokenLink[];
 };
 
-type A11yErrorMessage = {
+export type A11yErrorMessage = {
   message: string;
   selector?: string;
   context?: string;
 };
 
-type OutputTypeA11y = {
+export type OutputTypeA11y = {
   url: string;
   errorMessages: A11yErrorMessage[];
 };
@@ -120,13 +123,14 @@ export class Output {
 
   private renderHTMLOutput(type: RenderType) {
     switch (type) {
-      case "console":
+      case "cli":
         this.renderHTMLOutputConsole();
         break;
       case "json":
         return JSON.stringify(this.outputHTML);
         break;
       case "html":
+        this.renderHTMLOutputHTML();
         break;
     }
   }
@@ -159,9 +163,32 @@ export class Output {
     }
   }
 
+  private renderHTMLOutputHTML() {
+    fs.readFile("./templates/htmlTester.html", (err: any, buf: any) => {
+      const now = new Date();
+      const fileName = `./public/tmp/${now.getTime()}.html`;
+      const mainUrl = new URL(this.outputHTML[0].url);
+      Helper.clearDirectory("./public/tmp");
+      const manifest = Helper.getFrontendManifest();
+      fs.writeFile(
+        fileName,
+        mustache.render(buf.toString(), {
+          manifest: manifest,
+          mainUrl: mainUrl.origin,
+          date: now.toLocaleString(),
+          testedUrls: this.outputHTML,
+        }),
+        (err: any) => {
+          if (err) throw err;
+          open(fileName);
+        }
+      );
+    });
+  }
+
   private renderBrokenLinkOutput(type: RenderType) {
     switch (type) {
-      case "console":
+      case "cli":
         this.renderBrokenLinkOutputConsole();
         break;
       case "json":
@@ -199,7 +226,7 @@ export class Output {
 
   private renderA11yOutput(type: RenderType) {
     switch (type) {
-      case "console":
+      case "cli":
         this.renderA11yOutputConsole();
         break;
       case "json":

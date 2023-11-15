@@ -6,20 +6,31 @@ import { Helper } from "./helpers";
 import * as cheerio from "cheerio";
 import * as uniqueSelector from "cheerio-get-css-selector";
 import * as cliProgress from "cli-progress";
-import { Output } from "./output";
+import { Output, RenderType } from "./output";
 
 export class LinkTester {
   private output: Output;
   private external = false;
   private urls: string[] = [];
+  private outputType: RenderType = "cli";
+  private verbose = true;
 
   constructor() {
     colors.enable();
     this.output = new Output("linkTester");
   }
 
-  public test(sitemapUrl: string | null, url = "", external: boolean = false) {
+  public test(
+    sitemapUrl: string | null,
+    url = "",
+    external: boolean = false,
+    output: string = "cli",
+    verbose: boolean = true
+  ) {
     this.external = external;
+    this.outputType = output as RenderType;
+    this.verbose = verbose;
+
     this.output = new Output("linkTester");
     this.urls = [];
     if (url.length > 0) {
@@ -49,11 +60,14 @@ export class LinkTester {
   private testUrls() {
     Promise.resolve()
       .then(() => {
-        console.log(
-          colors.cyan.underline(
-            `Running validation on ${this.urls.length} URLS\n`
-          )
-        );
+        if (this.verbose) {
+          console.log(
+            colors.cyan.underline(
+              `Running validation on ${this.urls.length} URLS\n`
+            )
+          );
+        }
+
         let uniqueLinks: string[] = [];
         const baseUrl =
           this.urls[0].split("/")[0] + "//" + this.urls[0].split("/")[2];
@@ -81,7 +95,7 @@ export class LinkTester {
           this.testLinks(baseUrl, uniqueLinks);
         }
       } else {
-        this.output.render("console");
+        this.output.render(this.outputType);
       }
     });
   }
@@ -180,45 +194,49 @@ export class LinkTester {
               } else return false;
             });
 
-            const bar = new cliProgress.SingleBar(
-              {
-                clearOnComplete: false,
-                hideCursor: true,
-                format: (options: any, params: any, payload: any) => {
-                  // bar grows dynamically by current progress - no whitespaces are added
-                  const bar = options.barCompleteString.substr(
-                    0,
-                    Math.round(params.progress * options.barsize)
-                  );
-                  const barIncomplete = options.barIncompleteString.substr(
-                    Math.round(params.progress * options.barsize) + 1
-                  );
-                  return (
-                    bar +
-                    barIncomplete +
-                    " | " +
-                    payload.url +
-                    " | Links checked: " +
-                    params.value +
-                    "/" +
-                    params.total +
-                    " | " +
-                    (payload.errors == 0
-                      ? colors.green(payload.errors + " errors")
-                      : colors.red(payload.errors + " errors"))
-                  );
+            let bar: cliProgress.SingleBar | null = null;
+            if (this.verbose) {
+              bar = new cliProgress.SingleBar(
+                {
+                  clearOnComplete: false,
+                  hideCursor: true,
+                  format: (options: any, params: any, payload: any) => {
+                    // bar grows dynamically by current progress - no whitespaces are added
+                    const bar = options.barCompleteString.substr(
+                      0,
+                      Math.round(params.progress * options.barsize)
+                    );
+                    const barIncomplete = options.barIncompleteString.substr(
+                      Math.round(params.progress * options.barsize) + 1
+                    );
+                    return (
+                      bar +
+                      barIncomplete +
+                      " | " +
+                      payload.url +
+                      " | Links checked: " +
+                      params.value +
+                      "/" +
+                      params.total +
+                      " | " +
+                      (payload.errors == 0
+                        ? colors.green(payload.errors + " errors")
+                        : colors.red(payload.errors + " errors"))
+                    );
+                  },
                 },
-              },
-              cliProgress.Presets.shades_grey
-            );
-
-            bar.start(elements.length, 0, {
-              url: url,
-              errors: totalErrors,
-            });
+                cliProgress.Presets.shades_grey
+              );
+              bar.start(elements.length, 0, {
+                url: url,
+                errors: totalErrors,
+              });
+            }
 
             if (elements.length == 0) {
-              bar.stop();
+              if (this.verbose && bar) {
+                bar.stop();
+              }
               resolveTest({
                 uniqueLinks: uniqueLinks,
               });
@@ -254,9 +272,13 @@ export class LinkTester {
                     });
                   }
                   urlsChecked++;
-                  bar.update(urlsChecked, { errors: totalErrors });
+                  if (this.verbose && bar) {
+                    bar.update(urlsChecked, { errors: totalErrors });
+                  }
                   if (urlsChecked == totalElements) {
-                    bar.stop();
+                    if (this.verbose && bar) {
+                      bar.stop();
+                    }
                     resolveTest({
                       uniqueLinks: uniqueLinks,
                     });
@@ -272,9 +294,13 @@ export class LinkTester {
                   });
                   totalErrors++;
                   urlsChecked++;
-                  bar.update(urlsChecked, { errors: totalErrors });
+                  if (this.verbose && bar) {
+                    bar.update(urlsChecked, { errors: totalErrors });
+                  }
                   if (urlsChecked == totalElements) {
-                    bar.stop();
+                    if (this.verbose && bar) {
+                      bar.stop();
+                    }
                     resolveTest({
                       uniqueLinks: uniqueLinks,
                     });

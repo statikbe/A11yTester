@@ -1,4 +1,6 @@
 import * as cheerio from "cheerio";
+import * as fs from "fs";
+import path from "path";
 
 export class Helper {
   constructor() {}
@@ -56,4 +58,30 @@ export class Helper {
         throw new Error(`The sitemap "${sitemapUrl}" could not be parsed`);
       });
   };
+
+  public static clearDirectory = (directory: string) => {
+    return new Promise<void>((resolve, reject) => {
+      fs.readdir(directory, (err, files) => {
+        if (err) reject(err);
+
+        for (const file of files) {
+          fs.unlink(path.join(directory, file), (err) => {
+            if (err) reject(err);
+          });
+        }
+        resolve();
+      });
+    });
+  };
+
+  public static getFrontendManifest() {
+    const manifest = JSON.parse(
+      fs.readFileSync("./public/frontend/manifest.json", "utf8")
+    );
+    return Object.keys(manifest).reduce((acc, key) => {
+      const newKey = key.split("/").join("").replace(".", "");
+      acc[newKey] = manifest[key];
+      return acc;
+    }, {});
+  }
 }

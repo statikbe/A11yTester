@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "sitemap": "https://www.statik.be/sitemap.xml",
+      "url": "",
+      "projectCode": "INTCRA",
+      "slackChannel": "",
+      "tests": ["a11y", "html", "links"]
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import { ProductionFlow } from "./production-flow";
 
 if (import.meta.env.VITE_ENVIRONMENT) {
   if (import.meta.env.VITE_ENVIRONMENT === "local") {
-    new LocalFlow();
+    new LocalFlow(import.meta.env.VITE_OUTPUT, import.meta.env.VITE_VERBOSE);
   }
   if (import.meta.env.VITE_ENVIRONMENT === "production") {
     new ProductionFlow();

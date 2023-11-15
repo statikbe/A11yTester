@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Accessibility Report For "{{& mainUrl}}"</title>
+
+    <link
+      rel="stylesheet"
+      href="../frontend/{{manifest.srcfrontendjssitecss.file}}"
+    />
+    <script src="../frontend/{{manifest.srcfrontendjssitets.file}}"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Accessibility Report For "{{& mainUrl}}"</h1>
+      <p>Created at: {{ date }}</p>
+      <h2>Tested Urls</h2>
+      {{#testedUrls}}
+      <div class="mt-10">
+        <h3>{{& url}}</h3>
+        {{#errorMessages}}
+        <div class="mb-5">
+          <p>{{message}}</p>
+          <p>{{selector}}</p>
+          <p>
+            <a href="{{ruleUrl}}">{{ruleId}}</a> - line: {{line}} | column:
+            {{column}}
+          </p>
+        </div>
+        {{/errorMessages}}
+      </div>
+      {{/testedUrls}}
+    </div>
+  </body>
+</html>
