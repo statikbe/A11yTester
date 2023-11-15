@@ -19,6 +19,8 @@ export type HTMLErrorMessage = {
 export type OutputTypeHTML = {
   url: string;
   errorMessages: HTMLErrorMessage[];
+  numberOfErrors?: number;
+  id?: string;
 };
 
 export type BrokenLink = {
@@ -170,6 +172,10 @@ export class Output {
       const mainUrl = new URL(this.outputHTML[0].url);
       Helper.clearDirectory("./public/tmp");
       const manifest = Helper.getFrontendManifest();
+      this.outputHTML.map((output) => {
+        output.numberOfErrors = output.errorMessages.length;
+        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
+      });
       fs.writeFile(
         fileName,
         mustache.render(buf.toString(), {
@@ -180,7 +186,12 @@ export class Output {
         }),
         (err: any) => {
           if (err) throw err;
-          open(fileName);
+          open(fileName, {
+            app: {
+              name: "google chrome",
+              arguments: ["--allow-file-access-from-files"],
+            },
+          });
         }
       );
     });

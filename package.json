@@ -27,7 +27,8 @@
     "tailwindcss": "^3.3.5",
     "typescript": "^5.2.2",
     "vite": "^4.4.5",
-    "vite-plugin-node": "^3.1.0"
+    "vite-plugin-node": "^3.1.0",
+    "vite-plugin-static-copy": "^0.17.0"
   },
   "dependencies": {
     "@types/cli-progress": "^3.11.5",

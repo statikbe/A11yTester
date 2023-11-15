@@ -2,10 +2,19 @@ const defaultTheme = require("tailwindcss/defaultTheme");
 
 const siteColors = {
   primary: {
-    DEFAULT: "#C22A1B",
+    DEFAULT: "#000000",
     contrast: "#ffffff",
-    hover: "#f27266",
-    hoverContrast: "#ffffff",
+    hover: "#FECE00",
+    hoverContrast: "#000000",
+  },
+  site: {
+    yellow: "#FECE00",
+    green: "#29AE81",
+    "light-blue": "#ACE3FE",
+    blue: "#0074BF",
+    orange: "#FE8F71",
+    red: "#FE3000",
+    brown: "#C29171",
   },
 };
 
@@ -24,8 +33,7 @@ module.exports = {
       padding: defaultTheme.spacing["4"],
     },
     fontFamily: {
-      accent: "serif",
-      base: "sans-serif",
+      base: '"Jost", sans-serif',
     },
     screens: {
       xs: "480px",

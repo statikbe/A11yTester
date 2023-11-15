@@ -1,5 +1,7 @@
+import { viteStaticCopy } from "vite-plugin-static-copy";
+
 export default ({ command }) => ({
-  base: "/frontend/",
+  base: "",
   publicDir: false,
   build: {
     emptyOutDir: true,
@@ -12,4 +14,14 @@ export default ({ command }) => ({
       },
     },
   },
+  plugins: [
+    viteStaticCopy({
+      targets: [
+        {
+          src: "src/frontend/img/",
+          dest: "",
+        },
+      ],
+    }),
+  ],
 });

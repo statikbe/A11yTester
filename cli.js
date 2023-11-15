@@ -194,6 +194,10 @@ class Output {
       const mainUrl = new URL(this.outputHTML[0].url);
       Helper.clearDirectory("./public/tmp");
       const manifest = Helper.getFrontendManifest();
+      this.outputHTML.map((output) => {
+        output.numberOfErrors = output.errorMessages.length;
+        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
+      });
       fs.writeFile(
         fileName,
         mustache.render(buf.toString(), {
@@ -205,7 +209,12 @@ class Output {
         (err2) => {
           if (err2)
             throw err2;
-          open(fileName);
+          open(fileName, {
+            app: {
+              name: "google chrome",
+              arguments: ["--allow-file-access-from-files"]
+            }
+          });
         }
       );
     });

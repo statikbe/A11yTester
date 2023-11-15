@@ -3,32 +3,78 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Accessibility Report For "{{& mainUrl}}"</title>
+    <title>HTML Error Report For "{{& mainUrl}}"</title>
 
     <link
       rel="stylesheet"
       href="../frontend/{{manifest.srcfrontendjssitecss.file}}"
     />
-    <script src="../frontend/{{manifest.srcfrontendjssitets.file}}"></script>
+    <script
+      src="../frontend/{{manifest.srcfrontendjssitets.file}}"
+      defer
+    ></script>
   </head>
   <body>
     <div class="container">
-      <h1>Accessibility Report For "{{& mainUrl}}"</h1>
-      <p>Created at: {{ date }}</p>
-      <h2>Tested Urls</h2>
+      <div class="flex items-start py-6 mb-4 border-b-1 border-black/10">
+        <img
+          src="../frontend/img/logo.svg"
+          alt=""
+          class="max-w-[120px] mr-10 block"
+        />
+        <h1 class="">HTML Error Report For "{{& mainUrl}}"</h1>
+      </div>
+      <p class="text-base opacity-50">Created at: {{ date }}</p>
+      <h2 class="mt-6">Tested Urls:</h2>
       {{#testedUrls}}
-      <div class="mt-10">
-        <h3>{{& url}}</h3>
-        {{#errorMessages}}
-        <div class="mb-5">
-          <p>{{message}}</p>
-          <p>{{selector}}</p>
-          <p>
-            <a href="{{ruleUrl}}">{{ruleId}}</a> - line: {{line}} | column:
-            {{column}}
-          </p>
+      <div class="mt-4">
+        <div class="flex items-center">
+          <a href="{{& url}}" target="_blank" class="mr-2 open-link">
+            <span class="sr-only">Open Link</span>
+          </a>
+          <div
+            class="flex items-center justify-between flex-1 cursor-pointer"
+            data-s-toggle-target="{{id}}"
+          >
+            <h3 class="flex items-center m-0 text-2xl">
+              {{& url}}
+              <span class="ml-2 text-base text-red-600">
+                ({{numberOfErrors}} errors)
+              </span>
+            </h3>
+            <span class="toggle-show js-toggle-collapsed-text">
+              <span class="text-sm whitespace-nowrap">Show errors</span>
+            </span>
+            <span class="toggle-hide js-toggle-expanded-text">
+              <span class="text-sm whitespace-nowrap">Hide errors</span>
+            </span>
+          </div>
         </div>
-        {{/errorMessages}}
+        <div
+          class="hidden divide-black/40 divide-y-1"
+          id="{{id}}"
+          data-s-toggle
+          data-s-toggle-animation="true"
+        >
+          {{#errorMessages}}
+          <div class="p-5 bg-gray-200">
+            <h4>{{message}}</h4>
+            <div class="flex items-center">
+              <button type="button" class="mr-4 copy-selector js-copy-selector">
+                <span class="sr-only">Copy selector</span>
+              </button>
+              <div class="overflow-auto">
+                <pre class="text-base text-yellow-700">{{selector}}</pre>
+              </div>
+            </div>
+            <div class="mt-2 text-sm opacity-60">
+              <a href="{{ruleUrl}}">{{ruleId}}</a> - line:
+              <strong>{{line}}</strong> | column:
+              <strong>{{column}}</strong>
+            </div>
+          </div>
+          {{/errorMessages}}
+        </div>
       </div>
       {{/testedUrls}}
     </div>

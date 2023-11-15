@@ -1,0 +1,14 @@
+.open-link {
+  @apply text-2xl text-blue-700;
+  @mixin icon-before link;
+}
+
+.copy-selector {
+  @apply p-1 text-yellow-900 bg-yellow-100 rounded-sm;
+  @mixin icon-before copy;
+
+  &.copied {
+    @apply text-green-900 bg-green-100;
+    @mixin icon-before check;
+  }
+}
