@@ -17,7 +17,7 @@ export class LinkTester {
 
   constructor() {
     colors.enable();
-    this.output = new Output("linkTester");
+    this.output = new Output("linkTester", "");
   }
 
   public test(
@@ -31,7 +31,6 @@ export class LinkTester {
     this.outputType = output as RenderType;
     this.verbose = verbose;
 
-    this.output = new Output("linkTester");
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
@@ -58,6 +57,7 @@ export class LinkTester {
   }
 
   private testUrls() {
+    this.output = new Output("linkTester", new URL(this.urls[0]).origin);
     Promise.resolve()
       .then(() => {
         if (this.verbose) {

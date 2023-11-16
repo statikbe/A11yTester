@@ -9,7 +9,7 @@
   },
   "src/frontend/fonts/Jost-300-latin6.woff2": {
     "file": "Jost-300-latin6-f5f9fabf.woff2",
-    "src": "src/frontend/fonts/Jost-900-latin18.woff2"
+    "src": "src/frontend/fonts/Jost-600-latin15.woff2"
   },
   "src/frontend/fonts/Jost-400-cyrillic1.woff2": {
     "file": "Jost-400-cyrillic1-9b4d40b1.woff2",
@@ -33,7 +33,7 @@
   },
   "src/frontend/fonts/Jost-400-latin9.woff2": {
     "file": "Jost-300-latin6-f5f9fabf.woff2",
-    "src": "src/frontend/fonts/Jost-900-latin18.woff2"
+    "src": "src/frontend/fonts/Jost-600-latin15.woff2"
   },
   "src/frontend/fonts/Jost-500-cyrillic10.woff2": {
     "file": "Jost-300-cyrillic4-a6a87284.woff2",
@@ -45,7 +45,7 @@
   },
   "src/frontend/fonts/Jost-500-latin12.woff2": {
     "file": "Jost-300-latin6-f5f9fabf.woff2",
-    "src": "src/frontend/fonts/Jost-900-latin18.woff2"
+    "src": "src/frontend/fonts/Jost-600-latin15.woff2"
   },
   "src/frontend/fonts/Jost-600-cyrillic13.woff2": {
     "file": "Jost-300-cyrillic4-a6a87284.woff2",
@@ -57,7 +57,7 @@
   },
   "src/frontend/fonts/Jost-600-latin15.woff2": {
     "file": "Jost-300-latin6-f5f9fabf.woff2",
-    "src": "src/frontend/fonts/Jost-900-latin18.woff2"
+    "src": "src/frontend/fonts/Jost-600-latin15.woff2"
   },
   "src/frontend/fonts/Jost-900-cyrillic16.woff2": {
     "file": "Jost-300-cyrillic4-a6a87284.woff2",
@@ -69,7 +69,7 @@
   },
   "src/frontend/fonts/Jost-900-latin18.woff2": {
     "file": "Jost-300-latin6-f5f9fabf.woff2",
-    "src": "src/frontend/fonts/Jost-900-latin18.woff2"
+    "src": "src/frontend/fonts/Jost-600-latin15.woff2"
   },
   "src/frontend/icons/check.svg": {
     "file": "check-8f2d6df5.svg",
@@ -96,7 +96,7 @@
     "src": "src/frontend/icons/visibility.svg"
   },
   "src/frontend/js/site.css": {
-    "file": "site-d74644ad.css",
+    "file": "site-18aa0750.css",
     "src": "src/frontend/js/site.css"
   },
   "src/frontend/js/site.ts": {
@@ -115,9 +115,9 @@
       "visibility-off-1baf25c8.svg"
     ],
     "css": [
-      "site-d74644ad.css"
+      "site-18aa0750.css"
     ],
-    "file": "site-d7e864d2.js",
+    "file": "site-4984ee84.js",
     "isEntry": true,
     "src": "src/frontend/js/site.ts"
   }

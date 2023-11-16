@@ -2,6 +2,8 @@
 
 Tool to test websites for A11y issues, HTML errors and broken links.
 
+## Setup
+
 ## Ideas for improvements
 
 - Add a vite build and add typescript to the mix for better programming. Also add tailwind for the layout of the HTML pages.

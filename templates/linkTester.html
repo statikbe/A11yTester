@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HTML Error Report For "{{& mainUrl}}"</title>
-    <link rel="shortcut icon" href="../frontend/img/favicon-html.svg" />
+    <title>Broken Link Report For "{{& mainUrl}}"</title>
+    <link rel="shortcut icon" href="../frontend/img/favicon-link.svg" />
 
     <link
       rel="stylesheet"
@@ -23,10 +23,10 @@
           alt=""
           class="max-w-[120px] mr-10 block"
         />
-        <h1 class="">HTML Error Report For "{{& mainUrl}}"</h1>
+        <h1 class="">Broken Link Report For "{{& mainUrl}}"</h1>
       </div>
       <p class="text-base opacity-50">Created at: {{ date }}</p>
-      <h2 class="mt-6">Urls with errors:</h2>
+      <h2 class="mt-6">Urls:</h2>
       {{#testedUrls}}
       <div class="mt-4">
         <div class="flex items-center">
@@ -41,6 +41,9 @@
               {{& url}}
               <span class="ml-2 text-base text-red-600">
                 ({{numberOfErrors}} errors)
+              </span>
+              <span class="ml-2 text-base text-green-600">
+                ({{numberOfOKLinks}} valid)
               </span>
             </h3>
             <span class="toggle-show js-toggle-collapsed-text">
@@ -57,24 +60,40 @@
           data-s-toggle
           data-s-toggle-animation="true"
         >
-          {{#errorMessages}}
+          {{#brokenLinks}}
           <div class="p-5 bg-gray-200">
-            <h4 class="font-normal">{{message}}</h4>
+            <h4 class="flex items-center font-normal">
+              <a href="{{& url}}" target="_blank" class="mr-2 open-link">
+                <span class="sr-only">Open Link</span>
+              </a>
+              <span class="font-bold text-red-600">{{status}}</span>
+              {{url}}
+            </h4>
             <div class="flex items-center">
               <button type="button" class="mr-4 copy-selector js-copy-selector">
                 <span class="sr-only">Copy selector</span>
               </button>
               <div class="overflow-auto">
-                <pre class="text-base text-yellow-700">{{selector}}</pre>
+                <pre class="mr-2 text-base text-yellow-700">{{selector}}</pre>
               </div>
             </div>
             <div class="mt-2 text-sm opacity-60">
-              <a href="{{ruleUrl}}">{{ruleId}}</a> - line:
-              <strong>{{line}}</strong> | column:
-              <strong>{{column}}</strong>
+              Tag:
+              <pre class="inline-block">{{tag}}</pre>
+              | Linktext: <strong>{{linkText}}</strong>
             </div>
           </div>
-          {{/errorMessages}}
+          {{/brokenLinks}} {{#okLinks}}
+          <div class="p-5 bg-gray-200">
+            <h4 class="flex items-center font-normal">
+              <a href="{{& url}}" target="_blank" class="mr-2 open-link">
+                <span class="sr-only">Open Link</span>
+              </a>
+              <span class="mr-2 font-bold text-green-600">{{status}}</span>
+              {{url}}
+            </h4>
+          </div>
+          {{/okLinks}}
         </div>
       </div>
       {{/testedUrls}}

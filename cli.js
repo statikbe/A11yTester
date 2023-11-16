@@ -78,83 +78,10 @@ _Helper.clearDirectory = (directory) => {
   });
 };
 let Helper = _Helper;
-class Output {
-  constructor(type) {
+class HTMLRenderer {
+  constructor(outputHTML) {
     this.outputHTML = [];
-    this.outputLinks = [];
-    this.outputA11y = [];
-    this.outputType = type;
-  }
-  add(url, errorMessage) {
-    switch (this.outputType) {
-      case "a11yTester":
-        this.addAlly(url, errorMessage);
-        break;
-      case "htmlTester":
-        this.addHTML(url, errorMessage);
-        break;
-      case "linkTester":
-        this.addBrokenLink(url, errorMessage);
-        break;
-    }
-  }
-  render(type) {
-    switch (this.outputType) {
-      case "a11yTester":
-        this.renderA11yOutput(type);
-        break;
-      case "htmlTester":
-        this.renderHTMLOutput(type);
-        break;
-      case "linkTester":
-        this.renderBrokenLinkOutput(type);
-        break;
-    }
-  }
-  addHTML(url, errorMessage) {
-    const output = this.outputHTML.find((output2) => output2.url === url);
-    if (output) {
-      output.errorMessages.push(errorMessage);
-    } else {
-      this.outputHTML.push({
-        url,
-        errorMessages: [errorMessage]
-      });
-    }
-  }
-  addBrokenLink(url, errorMessage) {
-    const output = this.outputLinks.find((output2) => output2.url === url);
-    if (output) {
-      output.brokenLinks.push(errorMessage);
-    } else {
-      this.outputLinks.push({
-        url,
-        brokenLinks: [errorMessage]
-      });
-    }
-  }
-  addAlly(url, errorMessage) {
-    const output = this.outputA11y.find((output2) => output2.url === url);
-    if (output) {
-      output.errorMessages.push(errorMessage);
-    } else {
-      this.outputA11y.push({
-        url,
-        errorMessages: [errorMessage]
-      });
-    }
-  }
-  renderHTMLOutput(type) {
-    switch (type) {
-      case "cli":
-        this.renderHTMLOutputConsole();
-        break;
-      case "json":
-        return JSON.stringify(this.outputHTML);
-      case "html":
-        this.renderHTMLOutputHTML();
-        break;
-    }
+    this.outputHTML = outputHTML;
   }
   renderHTMLOutputConsole() {
     let output = "";
@@ -187,17 +114,25 @@ class Output {
       process.exit();
     }
   }
-  renderHTMLOutputHTML() {
+  renderHTMLOutputHTML(url, exportForProduction = false) {
     fs.readFile("./templates/htmlTester.html", (err, buf) => {
       const now = /* @__PURE__ */ new Date();
-      const fileName = `./public/tmp/${now.getTime()}.html`;
-      const mainUrl = new URL(this.outputHTML[0].url);
-      Helper.clearDirectory("./public/tmp");
+      let fileName = "";
       const manifest = Helper.getFrontendManifest();
+      const mainUrl = new URL(url);
       this.outputHTML.map((output) => {
         output.numberOfErrors = output.errorMessages.length;
         output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
       });
+      if (exportForProduction) {
+        fileName = `./public/html/html-test-${mainUrl.origin.replace(
+          /[^a-zA-Z0-9]/g,
+          ""
+        )}.html`;
+      } else {
+        fileName = `./public/tmp/${now.getTime()}.html`;
+        Helper.clearDirectory("./public/tmp");
+      }
       fs.writeFile(
         fileName,
         mustache.render(buf.toString(), {
@@ -209,55 +144,25 @@ class Output {
         (err2) => {
           if (err2)
             throw err2;
-          open(fileName, {
-            app: {
-              name: "google chrome",
-              arguments: ["--allow-file-access-from-files"]
-            }
-          });
+          if (exportForProduction)
+            ;
+          else {
+            open(fileName, {
+              app: {
+                name: "google chrome",
+                arguments: ["--allow-file-access-from-files"]
+              }
+            });
+          }
         }
       );
     });
   }
-  renderBrokenLinkOutput(type) {
-    switch (type) {
-      case "cli":
-        this.renderBrokenLinkOutputConsole();
-        break;
-      case "json":
-        return JSON.stringify(this.outputLinks);
-    }
-  }
-  renderBrokenLinkOutputConsole() {
-    let output = "";
-    this.outputLinks.filter((f) => f.brokenLinks.find((bl) => bl.status != "200")).forEach((outputType) => {
-      output += colors.cyan(`> Errors for: ${outputType.url}
-
-`);
-      outputType.brokenLinks.filter((bl) => bl.status != "200").forEach((link) => {
-        output += ` ${colors.red("•")} ${colors.red(`${link.status}`)} : ${link.url}
-`;
-        output += `   ${colors.yellow(
-          link.linkText && link.linkText.length ? link.linkText : link.tag ?? ""
-        )} : 
-   ${colors.yellow(link.selector ?? "")}
-
-`;
-      });
-    });
-    if (output.length > 0) {
-      process.stdout.write(output);
-      process.exit();
-    }
-  }
-  renderA11yOutput(type) {
-    switch (type) {
-      case "cli":
-        this.renderA11yOutputConsole();
-        break;
-      case "json":
-        return JSON.stringify(this.outputA11y);
-    }
+}
+class A11yRenderer {
+  constructor(outputA11y) {
+    this.outputA11y = [];
+    this.outputA11y = outputA11y;
   }
   renderA11yOutputConsole() {
     let output = "";
@@ -290,6 +195,238 @@ class Output {
       process.exit();
     }
   }
+  renderA11yOutputHTML(url, exportForProduction = false) {
+    fs.readFile("./templates/a11yTester.html", (err, buf) => {
+      const now = /* @__PURE__ */ new Date();
+      let fileName = "";
+      const manifest = Helper.getFrontendManifest();
+      const mainUrl = new URL(url);
+      this.outputA11y.map((output) => {
+        output.numberOfErrors = output.errorMessages.length;
+        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
+      });
+      if (exportForProduction) {
+        fileName = `./public/html/a11y-test-${mainUrl.origin.replace(
+          /[^a-zA-Z0-9]/g,
+          ""
+        )}.html`;
+      } else {
+        fileName = `./public/tmp/${now.getTime()}.html`;
+        Helper.clearDirectory("./public/tmp");
+      }
+      fs.writeFile(
+        fileName,
+        mustache.render(buf.toString(), {
+          manifest,
+          mainUrl: mainUrl.origin,
+          date: now.toLocaleString(),
+          testedUrls: this.outputA11y
+        }),
+        (err2) => {
+          if (err2)
+            throw err2;
+          if (exportForProduction)
+            ;
+          else {
+            open(fileName, {
+              app: {
+                name: "google chrome",
+                arguments: ["--allow-file-access-from-files"]
+              }
+            });
+          }
+        }
+      );
+    });
+  }
+}
+class LinksRenderer {
+  constructor(outputLinks) {
+    this.outputLinks = [];
+    this.outputLinks = outputLinks;
+  }
+  renderBrokenLinkOutputConsole() {
+    let output = "";
+    this.outputLinks.filter((f) => f.brokenLinks.find((bl) => bl.status != "200")).forEach((outputType) => {
+      output += colors.cyan(`> Errors for: ${outputType.url}
+
+`);
+      outputType.brokenLinks.filter((bl) => bl.status != "200").forEach((link) => {
+        output += ` ${colors.red("•")} ${colors.red(`${link.status}`)} : ${link.url}
+`;
+        output += `   ${colors.yellow(
+          link.linkText && link.linkText.length ? link.linkText : link.tag ?? ""
+        )} : 
+   ${colors.yellow(link.selector ?? "")}
+
+`;
+      });
+    });
+    if (output.length > 0) {
+      process.stdout.write(output);
+      process.exit();
+    }
+  }
+  renderHTMLOutputHTML(url, exportForProduction = false) {
+    fs.readFile("./templates/linkTester.html", (err, buf) => {
+      const now = /* @__PURE__ */ new Date();
+      let fileName = "";
+      const manifest = Helper.getFrontendManifest();
+      const mainUrl = new URL(url);
+      this.outputLinks.map((output) => {
+        output.numberOfErrors = output.brokenLinks.filter(
+          (bl) => bl.status != "200"
+        ).length;
+        output.numberOfOKLinks = output.brokenLinks.filter(
+          (bl) => bl.status == "200"
+        ).length;
+        output.okLinks = output.brokenLinks.filter((bl) => bl.status == "200");
+        output.brokenLinks = output.brokenLinks.filter(
+          (bl) => bl.status != "200"
+        );
+        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
+      });
+      if (exportForProduction) {
+        fileName = `./public/html/link-test-${mainUrl.origin.replace(
+          /[^a-zA-Z0-9]/g,
+          ""
+        )}.html`;
+      } else {
+        fileName = `./public/tmp/${now.getTime()}.html`;
+        Helper.clearDirectory("./public/tmp");
+      }
+      fs.writeFile(
+        fileName,
+        mustache.render(buf.toString(), {
+          manifest,
+          mainUrl: mainUrl.origin,
+          date: now.toLocaleString(),
+          testedUrls: this.outputLinks
+        }),
+        (err2) => {
+          if (err2)
+            throw err2;
+          if (exportForProduction)
+            ;
+          else {
+            open(fileName, {
+              app: {
+                name: "google chrome",
+                arguments: ["--allow-file-access-from-files"]
+              }
+            });
+          }
+        }
+      );
+    });
+  }
+}
+class Output {
+  constructor(type, url) {
+    this.outputHTML = [];
+    this.outputLinks = [];
+    this.outputA11y = [];
+    this.outputType = type;
+    this.url = url;
+  }
+  add(url, errorMessage) {
+    switch (this.outputType) {
+      case "a11yTester":
+        this.addAlly(url, errorMessage);
+        break;
+      case "htmlTester":
+        this.addHTML(url, errorMessage);
+        break;
+      case "linkTester":
+        this.addBrokenLink(url, errorMessage);
+        break;
+    }
+  }
+  render(type) {
+    switch (this.outputType) {
+      case "a11yTester":
+        this.renderA11yOutput(type);
+        break;
+      case "htmlTester":
+        this.renderHTMLOutput(type);
+        break;
+      case "linkTester":
+        this.renderBrokenLinkOutput(type);
+        break;
+    }
+  }
+  addAlly(url, errorMessage) {
+    const output = this.outputA11y.find((output2) => output2.url === url);
+    if (output) {
+      output.errorMessages.push(errorMessage);
+    } else {
+      this.outputA11y.push({
+        url,
+        errorMessages: [errorMessage]
+      });
+    }
+  }
+  addHTML(url, errorMessage) {
+    const output = this.outputHTML.find((output2) => output2.url === url);
+    if (output) {
+      output.errorMessages.push(errorMessage);
+    } else {
+      this.outputHTML.push({
+        url,
+        errorMessages: [errorMessage]
+      });
+    }
+  }
+  addBrokenLink(url, errorMessage) {
+    const output = this.outputLinks.find((output2) => output2.url === url);
+    if (output) {
+      output.brokenLinks.push(errorMessage);
+    } else {
+      this.outputLinks.push({
+        url,
+        brokenLinks: [errorMessage]
+      });
+    }
+  }
+  renderA11yOutput(type) {
+    const a11yRenderer = new A11yRenderer(this.outputA11y);
+    switch (type) {
+      case "cli":
+        a11yRenderer.renderA11yOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputA11y);
+      case "html":
+        a11yRenderer.renderA11yOutputHTML(this.url);
+        break;
+    }
+  }
+  renderHTMLOutput(type) {
+    const htmlRenderer = new HTMLRenderer(this.outputHTML);
+    switch (type) {
+      case "cli":
+        htmlRenderer.renderHTMLOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputHTML);
+      case "html":
+        htmlRenderer.renderHTMLOutputHTML(this.url);
+        break;
+    }
+  }
+  renderBrokenLinkOutput(type) {
+    const linksRenderer = new LinksRenderer(this.outputLinks);
+    switch (type) {
+      case "cli":
+        linksRenderer.renderBrokenLinkOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputLinks);
+      case "html":
+        linksRenderer.renderHTMLOutputHTML(this.url);
+        break;
+    }
+  }
 }
 class HTMLTester {
   constructor() {
@@ -300,7 +437,7 @@ class HTMLTester {
     this.outputType = "cli";
     this.verbose = true;
     colors.enable();
-    this.output = new Output("htmlTester");
+    this.output = new Output("htmlTester", "");
     this.htmlvalidate = new HtmlValidate({
       elements: ["html5"],
       extends: ["html-validate:recommended"],
@@ -350,7 +487,7 @@ class HTMLTester {
           )
         );
       }
-      this.output = new Output("htmlTester");
+      this.output = new Output("htmlTester", new URL(this.urls[0]).origin);
       this.totalUrls = this.urls.length;
       this.currentUrl = 0;
       if (this.external && this.urls.length > 0) {
@@ -434,7 +571,7 @@ class A11yTester {
     this.outputType = "cli";
     this.verbose = true;
     colors.enable();
-    this.output = new Output("a11yTester");
+    this.output = new Output("a11yTester", "");
   }
   test(sitemapUrl, url = "", external = false, output = "cli", verbose = true) {
     this.outputType = output;
@@ -468,7 +605,7 @@ class A11yTester {
         )
       );
     }
-    this.output = new Output("a11yTester");
+    this.output = new Output("a11yTester", new URL(this.urls[0]).origin);
     this.totalUrls = this.urls.length;
     this.currentUrl = 0;
     if (this.external && this.urls.length > 0) {
@@ -524,13 +661,12 @@ class LinkTester {
     this.outputType = "cli";
     this.verbose = true;
     colors.enable();
-    this.output = new Output("linkTester");
+    this.output = new Output("linkTester", "");
   }
   test(sitemapUrl, url = "", external = false, output = "cli", verbose = true) {
     this.external = external;
     this.outputType = output;
     this.verbose = verbose;
-    this.output = new Output("linkTester");
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
@@ -552,6 +688,7 @@ class LinkTester {
     }
   }
   testUrls() {
+    this.output = new Output("linkTester", new URL(this.urls[0]).origin);
     Promise.resolve().then(() => {
       if (this.verbose) {
         console.log(

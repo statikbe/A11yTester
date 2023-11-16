@@ -1,8 +1,7 @@
 import colors from "colors";
-import * as fs from "fs";
-import mustache from "mustache";
-import open from "open";
-import { Helper } from "./helpers";
+import { HTMLRenderer } from "./html-renderer";
+import { A11yRenderer } from "./a11y-renderer";
+import { LinksRenderer } from "./links-renderer";
 
 export type RenderType = "cli" | "json" | "html";
 export type OutputType = "a11yTester" | "htmlTester" | "linkTester";
@@ -34,6 +33,10 @@ export type BrokenLink = {
 export type OutputTypeLink = {
   url: string;
   brokenLinks: BrokenLink[];
+  okLinks?: BrokenLink[];
+  numberOfErrors?: number;
+  numberOfOKLinks?: number;
+  id?: string;
 };
 
 export type A11yErrorMessage = {
@@ -45,6 +48,8 @@ export type A11yErrorMessage = {
 export type OutputTypeA11y = {
   url: string;
   errorMessages: A11yErrorMessage[];
+  numberOfErrors?: number;
+  id?: string;
 };
 
 export class Output {
@@ -52,8 +57,11 @@ export class Output {
   private outputLinks: OutputTypeLink[] = [];
   private outputA11y: OutputTypeA11y[] = [];
   private outputType: OutputType;
-  constructor(type: OutputType) {
+  private url: string;
+
+  constructor(type: OutputType, url: string) {
     this.outputType = type;
+    this.url = url;
   }
 
   public add(
@@ -87,6 +95,18 @@ export class Output {
     }
   }
 
+  private addAlly(url: string, errorMessage: A11yErrorMessage) {
+    const output = this.outputA11y.find((output) => output.url === url);
+    if (output) {
+      output.errorMessages.push(errorMessage);
+    } else {
+      this.outputA11y.push({
+        url,
+        errorMessages: [errorMessage],
+      });
+    }
+  }
+
   private addHTML(url: string, errorMessage: HTMLErrorMessage) {
     const output = this.outputHTML.find((output) => output.url === url);
     if (output) {
@@ -111,161 +131,48 @@ export class Output {
     }
   }
 
-  private addAlly(url: string, errorMessage: A11yErrorMessage) {
-    const output = this.outputA11y.find((output) => output.url === url);
-    if (output) {
-      output.errorMessages.push(errorMessage);
-    } else {
-      this.outputA11y.push({
-        url,
-        errorMessages: [errorMessage],
-      });
-    }
-  }
-
-  private renderHTMLOutput(type: RenderType) {
-    switch (type) {
-      case "cli":
-        this.renderHTMLOutputConsole();
-        break;
-      case "json":
-        return JSON.stringify(this.outputHTML);
-        break;
-      case "html":
-        this.renderHTMLOutputHTML();
-        break;
-    }
-  }
-
-  private renderHTMLOutputConsole() {
-    let output = "";
-    this.outputHTML.forEach((outputType: OutputTypeHTML) => {
-      output += colors.underline.cyan(
-        `${outputType.url} - ${outputType.errorMessages.length} errors\n\n`
-      );
-      outputType.errorMessages.forEach((message: HTMLErrorMessage) => {
-        output += ` ${colors.red("•")} ${message.message}\n`;
-        if (message.selector) {
-          output += `   ${colors.yellow(message.selector)}\n`;
-        }
-        if (message.ruleId && message.line && message.column) {
-          output += `   ${colors.dim(message.ruleId)} - line: ${
-            message.line
-          } | column: ${message.column}\n`;
-        }
-        if (message.ruleUrl) {
-          output += `   ${colors.dim.underline.italic(message.ruleUrl)}\n`;
-        }
-        output += "\n";
-      });
-    });
-    if (output.length > 0) {
-      process.stdout.write(output);
-      process.exit();
-    }
-  }
-
-  private renderHTMLOutputHTML() {
-    fs.readFile("./templates/htmlTester.html", (err: any, buf: any) => {
-      const now = new Date();
-      const fileName = `./public/tmp/${now.getTime()}.html`;
-      const mainUrl = new URL(this.outputHTML[0].url);
-      Helper.clearDirectory("./public/tmp");
-      const manifest = Helper.getFrontendManifest();
-      this.outputHTML.map((output) => {
-        output.numberOfErrors = output.errorMessages.length;
-        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
-      });
-      fs.writeFile(
-        fileName,
-        mustache.render(buf.toString(), {
-          manifest: manifest,
-          mainUrl: mainUrl.origin,
-          date: now.toLocaleString(),
-          testedUrls: this.outputHTML,
-        }),
-        (err: any) => {
-          if (err) throw err;
-          open(fileName, {
-            app: {
-              name: "google chrome",
-              arguments: ["--allow-file-access-from-files"],
-            },
-          });
-        }
-      );
-    });
-  }
-
-  private renderBrokenLinkOutput(type: RenderType) {
-    switch (type) {
-      case "cli":
-        this.renderBrokenLinkOutputConsole();
-        break;
-      case "json":
-        return JSON.stringify(this.outputLinks);
-        break;
-      case "html":
-        break;
-    }
-  }
-
-  private renderBrokenLinkOutputConsole() {
-    let output = "";
-    this.outputLinks
-      .filter((f) => f.brokenLinks.find((bl) => bl.status != "200"))
-      .forEach((outputType: OutputTypeLink) => {
-        output += colors.cyan(`> Errors for: ${outputType.url}\n\n`);
-        outputType.brokenLinks
-          .filter((bl) => bl.status != "200")
-          .forEach((link: BrokenLink) => {
-            output += ` ${colors.red("•")} ${colors.red(`${link.status}`)} : ${
-              link.url
-            }\n`;
-            output += `   ${colors.yellow(
-              link.linkText && link.linkText.length
-                ? link.linkText
-                : link.tag ?? ""
-            )} : \n   ${colors.yellow(link.selector ?? "")}\n\n`;
-          });
-      });
-    if (output.length > 0) {
-      process.stdout.write(output);
-      process.exit();
-    }
-  }
-
   private renderA11yOutput(type: RenderType) {
+    const a11yRenderer = new A11yRenderer(this.outputA11y);
     switch (type) {
       case "cli":
-        this.renderA11yOutputConsole();
+        a11yRenderer.renderA11yOutputConsole();
         break;
       case "json":
         return JSON.stringify(this.outputA11y);
         break;
       case "html":
+        a11yRenderer.renderA11yOutputHTML(this.url);
         break;
     }
   }
 
-  private renderA11yOutputConsole() {
-    let output = "";
-    this.outputA11y.forEach((outputType: OutputTypeA11y) => {
-      output += colors.cyan(`\n> Errors for: ${outputType.url}\n\n`);
-      outputType.errorMessages.forEach((message: A11yErrorMessage) => {
-        output += `------------------------\n\n`;
-        output += `${colors.red(`${message.message}`)}\n\n`;
-        if (message.selector) {
-          output += `${colors.yellow(message.selector)}\n\n`;
-        }
-        if (message.context) {
-          output += `${colors.gray(message.context)}\n\n`;
-        }
-      });
-    });
-    if (output.length > 0) {
-      process.stdout.write(output);
-      process.exit();
+  private renderHTMLOutput(type: RenderType) {
+    const htmlRenderer = new HTMLRenderer(this.outputHTML);
+    switch (type) {
+      case "cli":
+        htmlRenderer.renderHTMLOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputHTML);
+        break;
+      case "html":
+        htmlRenderer.renderHTMLOutputHTML(this.url);
+        break;
+    }
+  }
+
+  private renderBrokenLinkOutput(type: RenderType) {
+    const linksRenderer = new LinksRenderer(this.outputLinks);
+    switch (type) {
+      case "cli":
+        linksRenderer.renderBrokenLinkOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputLinks);
+        break;
+      case "html":
+        linksRenderer.renderHTMLOutputHTML(this.url);
+        break;
     }
   }
 }

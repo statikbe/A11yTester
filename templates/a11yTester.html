@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HTML Error Report For "{{& mainUrl}}"</title>
-    <link rel="shortcut icon" href="../frontend/img/favicon-html.svg" />
+    <title>A11y Report For "{{& mainUrl}}"</title>
+    <link rel="shortcut icon" href="../frontend/img/favicon-a11y.svg" />
 
     <link
       rel="stylesheet"
@@ -23,7 +23,7 @@
           alt=""
           class="max-w-[120px] mr-10 block"
         />
-        <h1 class="">HTML Error Report For "{{& mainUrl}}"</h1>
+        <h1 class="">Accessibility Report For "{{& mainUrl}}"</h1>
       </div>
       <p class="text-base opacity-50">Created at: {{ date }}</p>
       <h2 class="mt-6">Urls with errors:</h2>
@@ -69,13 +69,17 @@
               </div>
             </div>
             <div class="mt-2 text-sm opacity-60">
-              <a href="{{ruleUrl}}">{{ruleId}}</a> - line:
-              <strong>{{line}}</strong> | column:
-              <strong>{{column}}</strong>
+              <div class="overflow-auto">
+                <pre>{{context}}</pre>
+              </div>
             </div>
           </div>
           {{/errorMessages}}
         </div>
+      </div>
+      {{/testedUrls}} {{^testedUrls}}
+      <div class="text-xl text-center text-green-900 bg-green-200 rounded">
+        <p class="p-5">No errors found!</p>
       </div>
       {{/testedUrls}}
     </div>

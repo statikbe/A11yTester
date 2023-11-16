@@ -18,7 +18,7 @@ export class HTMLTester {
 
   constructor() {
     colors.enable();
-    this.output = new Output("htmlTester");
+    this.output = new Output("htmlTester", "");
     this.htmlvalidate = new HtmlValidate({
       elements: ["html5"],
       extends: ["html-validate:recommended"],
@@ -82,7 +82,7 @@ export class HTMLTester {
             )
           );
         }
-        this.output = new Output("htmlTester");
+        this.output = new Output("htmlTester", new URL(this.urls[0]).origin);
         this.totalUrls = this.urls.length;
         this.currentUrl = 0;
 

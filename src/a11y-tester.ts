@@ -18,7 +18,7 @@ export class A11yTester {
 
   constructor() {
     colors.enable();
-    this.output = new Output("a11yTester");
+    this.output = new Output("a11yTester", "");
   }
 
   public test(
@@ -64,7 +64,7 @@ export class A11yTester {
       );
     }
 
-    this.output = new Output("a11yTester");
+    this.output = new Output("a11yTester", new URL(this.urls[0]).origin);
     this.totalUrls = this.urls.length;
     this.currentUrl = 0;
 
