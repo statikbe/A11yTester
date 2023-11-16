@@ -934,6 +934,19 @@ class LocalFlow {
   }
   startFlow(runData) {
     (async () => {
+      if (this.output === "cli-choose") {
+        const renderChoice = await prompts({
+          type: "select",
+          name: "value",
+          message: "Where should the errors be exported to?",
+          choices: [
+            { title: "CLI", value: "cli" },
+            { title: "HTML", value: "html" }
+          ],
+          initial: 0
+        });
+        this.output = renderChoice.value;
+      }
       let responseTool = { value: "" };
       let type = { value: "" };
       let sitemap = { value: "" };
@@ -1142,6 +1155,6 @@ class LocalFlow {
 }
 {
   {
-    new LocalFlow("html", "true");
+    new LocalFlow("cli-choose", "true");
   }
 }

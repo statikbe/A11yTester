@@ -6,10 +6,13 @@ import { LinkTester } from "./links-tester";
 import { RenderType } from "./output";
 
 export class LocalFlow {
-  private output: RenderType;
+  private output: RenderType | "cli-choose";
   private verbose: boolean;
 
-  constructor(output: RenderType = "cli", verbose: boolean = true) {
+  constructor(
+    output: RenderType | "cli-choose" = "cli",
+    verbose: boolean = true
+  ) {
     this.output = output;
     this.verbose = verbose;
 
@@ -29,6 +32,21 @@ export class LocalFlow {
 
   private startFlow(runData: any) {
     (async () => {
+      if (this.output === "cli-choose") {
+        const renderChoice = await prompts({
+          type: "select",
+          name: "value",
+          message: "Where should the errors be exported to?",
+          choices: [
+            { title: "CLI", value: "cli" },
+            { title: "HTML", value: "html" },
+          ],
+          initial: 0,
+        });
+
+        this.output = renderChoice.value;
+      }
+
       let responseTool: prompts.Answers<"value"> = { value: "" };
       let type: prompts.Answers<"value"> = { value: "" };
       let sitemap: prompts.Answers<"value"> = { value: "" };
@@ -136,7 +154,7 @@ export class LocalFlow {
               `http://${project.value}.local.statik.be/sitemap.xml`,
               "",
               false,
-              this.output,
+              this.output as RenderType,
               this.verbose
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
@@ -145,7 +163,7 @@ export class LocalFlow {
               externalUrl.value,
               "",
               true,
-              this.output,
+              this.output as RenderType,
               this.verbose
             );
             runData.url = externalUrl.value;
@@ -156,7 +174,7 @@ export class LocalFlow {
             null,
             url.value,
             true,
-            this.output,
+            this.output as RenderType,
             this.verbose
           );
           runData.url = url.value;
@@ -171,7 +189,7 @@ export class LocalFlow {
               `http://${project.value}.local.statik.be/sitemap.xml`,
               "",
               false,
-              this.output,
+              this.output as RenderType,
               this.verbose
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
@@ -180,7 +198,7 @@ export class LocalFlow {
               externalUrl.value,
               "",
               true,
-              this.output,
+              this.output as RenderType,
               this.verbose
             );
             runData.url = externalUrl.value;
@@ -191,7 +209,7 @@ export class LocalFlow {
             null,
             url.value,
             true,
-            this.output,
+            this.output as RenderType,
             this.verbose
           );
           runData.url = url.value;
@@ -206,7 +224,7 @@ export class LocalFlow {
               `http://${project.value}.local.statik.be/sitemap.xml`,
               "",
               false,
-              this.output,
+              this.output as RenderType,
               this.verbose
             );
             runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
@@ -215,7 +233,7 @@ export class LocalFlow {
               externalUrl.value,
               "",
               true,
-              this.output,
+              this.output as RenderType,
               this.verbose
             );
             runData.url = externalUrl.value;
@@ -226,7 +244,7 @@ export class LocalFlow {
             null,
             url.value,
             true,
-            this.output,
+            this.output as RenderType,
             this.verbose
           );
           runData.url = url.value;
