@@ -3,7 +3,7 @@ import * as fs from "fs";
 import mustache from "mustache";
 import open from "open";
 import { Helper } from "./helpers";
-import { HTMLErrorMessage, OutputTypeHTML } from "./output";
+import { HTMLErrorMessage, OutputTypeHTML } from "./types";
 
 export class HTMLRenderer {
   private outputHTML: OutputTypeHTML[] = [];
@@ -43,27 +43,32 @@ export class HTMLRenderer {
     url: string,
     exportForProduction: boolean = false
   ) {
+    const now = new Date();
+    const mainUrl = new URL(url);
+    let fileName = "";
+    let path = "";
+    const manifest = Helper.getFrontendManifest();
+
+    if (exportForProduction) {
+      fileName = `html-test-${mainUrl.origin.replace(
+        /[^a-zA-Z0-9]/g,
+        ""
+      )}.html`;
+      path = `./public/html/${fileName}`;
+    } else {
+      fileName = `${now.getTime()}.html`;
+      path = `./public/tmp/${fileName}`;
+      Helper.clearDirectory("./public/tmp");
+    }
+
     fs.readFile("./templates/htmlTester.html", (err: any, buf: any) => {
-      const now = new Date();
-      let fileName = "";
-      const manifest = Helper.getFrontendManifest();
-      const mainUrl = new URL(url);
       this.outputHTML.map((output) => {
         output.numberOfErrors = output.errorMessages.length;
         output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
       });
 
-      if (exportForProduction) {
-        fileName = `./public/html/html-test-${mainUrl.origin.replace(
-          /[^a-zA-Z0-9]/g,
-          ""
-        )}.html`;
-      } else {
-        fileName = `./public/tmp/${now.getTime()}.html`;
-        Helper.clearDirectory("./public/tmp");
-      }
       fs.writeFile(
-        fileName,
+        path,
         mustache.render(buf.toString(), {
           manifest: manifest,
           mainUrl: mainUrl.origin,
@@ -84,5 +89,6 @@ export class HTMLRenderer {
         }
       );
     });
+    return fileName;
   }
 }

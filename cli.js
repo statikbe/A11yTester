@@ -1,6 +1,5 @@
-import prompts from "prompts";
+import "prompts";
 import * as fs from "fs";
-import { HtmlValidate } from "html-validate/node";
 import colors from "colors";
 import * as cheerio from "cheerio";
 import path from "path";
@@ -9,6 +8,7 @@ import open from "open";
 import * as pa11y from "pa11y";
 import * as uniqueSelector from "cheerio-get-css-selector";
 import * as cliProgress from "cli-progress";
+import { HtmlValidate } from "html-validate/node";
 const _Helper = class _Helper2 {
   constructor() {
   }
@@ -115,26 +115,29 @@ class HTMLRenderer {
     }
   }
   renderHTMLOutputHTML(url, exportForProduction = false) {
+    const now = /* @__PURE__ */ new Date();
+    const mainUrl = new URL(url);
+    let fileName = "";
+    let path2 = "";
+    const manifest = Helper.getFrontendManifest();
+    if (exportForProduction) {
+      fileName = `html-test-${mainUrl.origin.replace(
+        /[^a-zA-Z0-9]/g,
+        ""
+      )}.html`;
+      path2 = `./public/html/${fileName}`;
+    } else {
+      fileName = `${now.getTime()}.html`;
+      path2 = `./public/tmp/${fileName}`;
+      Helper.clearDirectory("./public/tmp");
+    }
     fs.readFile("./templates/htmlTester.html", (err, buf) => {
-      const now = /* @__PURE__ */ new Date();
-      let fileName = "";
-      const manifest = Helper.getFrontendManifest();
-      const mainUrl = new URL(url);
       this.outputHTML.map((output) => {
         output.numberOfErrors = output.errorMessages.length;
         output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
       });
-      if (exportForProduction) {
-        fileName = `./public/html/html-test-${mainUrl.origin.replace(
-          /[^a-zA-Z0-9]/g,
-          ""
-        )}.html`;
-      } else {
-        fileName = `./public/tmp/${now.getTime()}.html`;
-        Helper.clearDirectory("./public/tmp");
-      }
       fs.writeFile(
-        fileName,
+        path2,
         mustache.render(buf.toString(), {
           manifest,
           mainUrl: mainUrl.origin,
@@ -157,6 +160,7 @@ class HTMLRenderer {
         }
       );
     });
+    return fileName;
   }
 }
 class A11yRenderer {
@@ -196,26 +200,29 @@ class A11yRenderer {
     }
   }
   renderA11yOutputHTML(url, exportForProduction = false) {
+    const now = /* @__PURE__ */ new Date();
+    let fileName = "";
+    let path2 = "";
+    const manifest = Helper.getFrontendManifest();
+    const mainUrl = new URL(url);
+    this.outputA11y.map((output) => {
+      output.numberOfErrors = output.errorMessages.length;
+      output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
+    });
+    if (exportForProduction) {
+      fileName = `a11y-test-${mainUrl.origin.replace(
+        /[^a-zA-Z0-9]/g,
+        ""
+      )}.html`;
+      path2 = `./public/html/${fileName}`;
+    } else {
+      fileName = `${now.getTime()}.html`;
+      path2 = `./public/tmp/${fileName}`;
+      Helper.clearDirectory("./public/tmp");
+    }
     fs.readFile("./templates/a11yTester.html", (err, buf) => {
-      const now = /* @__PURE__ */ new Date();
-      let fileName = "";
-      const manifest = Helper.getFrontendManifest();
-      const mainUrl = new URL(url);
-      this.outputA11y.map((output) => {
-        output.numberOfErrors = output.errorMessages.length;
-        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
-      });
-      if (exportForProduction) {
-        fileName = `./public/html/a11y-test-${mainUrl.origin.replace(
-          /[^a-zA-Z0-9]/g,
-          ""
-        )}.html`;
-      } else {
-        fileName = `./public/tmp/${now.getTime()}.html`;
-        Helper.clearDirectory("./public/tmp");
-      }
       fs.writeFile(
-        fileName,
+        path2,
         mustache.render(buf.toString(), {
           manifest,
           mainUrl: mainUrl.origin,
@@ -238,6 +245,7 @@ class A11yRenderer {
         }
       );
     });
+    return fileName;
   }
 }
 class LinksRenderer {
@@ -267,36 +275,39 @@ class LinksRenderer {
       process.exit();
     }
   }
-  renderHTMLOutputHTML(url, exportForProduction = false) {
+  renderBrokenLinkOutputHTML(url, exportForProduction = false) {
+    const now = /* @__PURE__ */ new Date();
+    let fileName = "";
+    let path2 = "";
+    const manifest = Helper.getFrontendManifest();
+    const mainUrl = new URL(url);
+    this.outputLinks.map((output) => {
+      output.numberOfErrors = output.brokenLinks.filter(
+        (bl) => bl.status != "200"
+      ).length;
+      output.numberOfOKLinks = output.brokenLinks.filter(
+        (bl) => bl.status == "200"
+      ).length;
+      output.okLinks = output.brokenLinks.filter((bl) => bl.status == "200");
+      output.brokenLinks = output.brokenLinks.filter(
+        (bl) => bl.status != "200"
+      );
+      output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
+    });
+    if (exportForProduction) {
+      fileName = `link-test-${mainUrl.origin.replace(
+        /[^a-zA-Z0-9]/g,
+        ""
+      )}.html`;
+      path2 = `./public/html/${fileName}`;
+    } else {
+      fileName = `${now.getTime()}.html`;
+      path2 = `./public/tmp/${fileName}`;
+      Helper.clearDirectory("./public/tmp");
+    }
     fs.readFile("./templates/linkTester.html", (err, buf) => {
-      const now = /* @__PURE__ */ new Date();
-      let fileName = "";
-      const manifest = Helper.getFrontendManifest();
-      const mainUrl = new URL(url);
-      this.outputLinks.map((output) => {
-        output.numberOfErrors = output.brokenLinks.filter(
-          (bl) => bl.status != "200"
-        ).length;
-        output.numberOfOKLinks = output.brokenLinks.filter(
-          (bl) => bl.status == "200"
-        ).length;
-        output.okLinks = output.brokenLinks.filter((bl) => bl.status == "200");
-        output.brokenLinks = output.brokenLinks.filter(
-          (bl) => bl.status != "200"
-        );
-        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
-      });
-      if (exportForProduction) {
-        fileName = `./public/html/link-test-${mainUrl.origin.replace(
-          /[^a-zA-Z0-9]/g,
-          ""
-        )}.html`;
-      } else {
-        fileName = `./public/tmp/${now.getTime()}.html`;
-        Helper.clearDirectory("./public/tmp");
-      }
       fs.writeFile(
-        fileName,
+        path2,
         mustache.render(buf.toString(), {
           manifest,
           mainUrl: mainUrl.origin,
@@ -319,6 +330,7 @@ class LinksRenderer {
         }
       );
     });
+    return fileName;
   }
 }
 class Output {
@@ -342,18 +354,16 @@ class Output {
         break;
     }
   }
-  render(type) {
+  render(type, exportForProduction = false) {
     switch (this.outputType) {
       case "a11yTester":
-        this.renderA11yOutput(type);
-        break;
+        return this.renderA11yOutput(type, exportForProduction);
       case "htmlTester":
-        this.renderHTMLOutput(type);
-        break;
+        return this.renderHTMLOutput(type, exportForProduction);
       case "linkTester":
-        this.renderBrokenLinkOutput(type);
-        break;
+        return this.renderBrokenLinkOutput(type, exportForProduction);
     }
+    return "";
   }
   addAlly(url, errorMessage) {
     const output = this.outputA11y.find((output2) => output2.url === url);
@@ -388,7 +398,7 @@ class Output {
       });
     }
   }
-  renderA11yOutput(type) {
+  renderA11yOutput(type, exportForProduction) {
     const a11yRenderer = new A11yRenderer(this.outputA11y);
     switch (type) {
       case "cli":
@@ -397,11 +407,11 @@ class Output {
       case "json":
         return JSON.stringify(this.outputA11y);
       case "html":
-        a11yRenderer.renderA11yOutputHTML(this.url);
-        break;
+        return a11yRenderer.renderA11yOutputHTML(this.url, exportForProduction);
     }
+    return "";
   }
-  renderHTMLOutput(type) {
+  renderHTMLOutput(type, exportForProduction) {
     const htmlRenderer = new HTMLRenderer(this.outputHTML);
     switch (type) {
       case "cli":
@@ -410,11 +420,11 @@ class Output {
       case "json":
         return JSON.stringify(this.outputHTML);
       case "html":
-        htmlRenderer.renderHTMLOutputHTML(this.url);
-        break;
+        return htmlRenderer.renderHTMLOutputHTML(this.url, exportForProduction);
     }
+    return "";
   }
-  renderBrokenLinkOutput(type) {
+  renderBrokenLinkOutput(type, exportForProduction) {
     const linksRenderer = new LinksRenderer(this.outputLinks);
     switch (type) {
       case "cli":
@@ -423,19 +433,25 @@ class Output {
       case "json":
         return JSON.stringify(this.outputLinks);
       case "html":
-        linksRenderer.renderHTMLOutputHTML(this.url);
-        break;
+        return linksRenderer.renderBrokenLinkOutputHTML(
+          this.url,
+          exportForProduction
+        );
     }
+    return "";
   }
 }
 class HTMLTester {
   constructor() {
     this.currentUrl = 1;
     this.totalUrls = 0;
+    this.totalErrorUrls = 0;
     this.external = false;
     this.urls = [];
     this.outputType = "cli";
     this.verbose = true;
+    this.exportForProduction = false;
+    this.testPromise = null;
     colors.enable();
     this.output = new Output("htmlTester", "");
     this.htmlvalidate = new HtmlValidate({
@@ -454,10 +470,11 @@ class HTMLTester {
       }
     });
   }
-  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true) {
+  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true, exportForProduction = false) {
     this.external = external;
     this.outputType = output;
     this.verbose = verbose;
+    this.exportForProduction = exportForProduction;
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
@@ -477,6 +494,10 @@ class HTMLTester {
     } else {
       this.testUrls();
     }
+    this.testPromise = new Promise((resolve, reject) => {
+      this.testResolve = resolve;
+    });
+    return this.testPromise;
   }
   testUrls() {
     Promise.resolve().then(() => {
@@ -547,13 +568,23 @@ class HTMLTester {
         console.log(colors.green("0 errors"));
       } else {
         console.log(colors.red(`${errors} errors`));
+        this.totalErrorUrls++;
       }
     }
     if (message) {
       this.output.add(url, message);
     }
     if (this.currentUrl == this.totalUrls) {
-      this.output.render(this.outputType);
+      const filename = this.output.render(
+        this.outputType,
+        this.exportForProduction
+      );
+      const testResult = {
+        filename,
+        numberOfUrls: this.totalUrls,
+        numberOfUrlsWithErrors: this.totalErrorUrls
+      };
+      this.testResolve(testResult);
     }
     if (this.external && this.urls.length > 0) {
       setTimeout(() => {
@@ -567,16 +598,20 @@ class A11yTester {
     this.external = false;
     this.currentUrl = 1;
     this.totalUrls = 0;
+    this.totalErrorUrls = 0;
     this.urls = [];
     this.outputType = "cli";
     this.verbose = true;
+    this.exportForProduction = false;
+    this.testPromise = null;
     colors.enable();
     this.output = new Output("a11yTester", "");
   }
-  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true) {
+  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true, exportForProduction = false) {
     this.outputType = output;
     this.verbose = verbose;
     this.external = external;
+    this.exportForProduction = exportForProduction;
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
@@ -595,6 +630,10 @@ class A11yTester {
     } else {
       this.testUrls();
     }
+    this.testPromise = new Promise((resolve, reject) => {
+      this.testResolve = resolve;
+    });
+    return this.testPromise;
   }
   testUrls() {
     if (this.verbose) {
@@ -634,6 +673,7 @@ class A11yTester {
           console.log(colors.green("0 errors"));
         } else {
           console.log(colors.red(`${results.issues.length} errors`));
+          this.totalErrorUrls++;
         }
       }
       results.issues.forEach((issue) => {
@@ -649,7 +689,16 @@ class A11yTester {
         }, 100);
       }
       if (this.external && this.urls.length == 0) {
-        this.output.render(this.outputType);
+        const filename = this.output.render(
+          this.outputType,
+          this.exportForProduction
+        );
+        const testResult = {
+          filename,
+          numberOfUrls: this.totalUrls,
+          numberOfUrlsWithErrors: this.totalErrorUrls
+        };
+        this.testResolve(testResult);
       }
     });
   }
@@ -660,22 +709,29 @@ class LinkTester {
     this.urls = [];
     this.outputType = "cli";
     this.verbose = true;
+    this.exportForProduction = false;
+    this.testPromise = null;
+    this.totalUrls = 0;
+    this.totalErrorUrls = 0;
     colors.enable();
     this.output = new Output("linkTester", "");
   }
-  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true) {
+  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true, exportForProduction = false) {
     this.external = external;
     this.outputType = output;
     this.verbose = verbose;
+    this.exportForProduction = exportForProduction;
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
     }
+    this.totalUrls = this.urls.length;
     if (sitemapUrl) {
       Promise.resolve().then(() => {
         Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
           if (urls) {
             this.urls = urls;
+            this.totalUrls = urls.length;
             this.testUrls();
           }
         });
@@ -686,6 +742,10 @@ class LinkTester {
     } else {
       this.testUrls();
     }
+    this.testPromise = new Promise((resolve, reject) => {
+      this.testResolve = resolve;
+    });
+    return this.testPromise;
   }
   testUrls() {
     this.output = new Output("linkTester", new URL(this.urls[0]).origin);
@@ -719,7 +779,16 @@ class LinkTester {
           this.testLinks(baseUrl, uniqueLinks);
         }
       } else {
-        this.output.render(this.outputType);
+        const filename = this.output.render(
+          this.outputType,
+          this.exportForProduction
+        );
+        const testResult = {
+          filename,
+          numberOfUrls: this.totalUrls,
+          numberOfUrlsWithErrors: this.totalErrorUrls
+        };
+        this.testResolve(testResult);
       }
     });
   }
@@ -866,6 +935,9 @@ class LinkTester {
                 if (this.verbose && bar) {
                   bar.stop();
                 }
+                if (totalErrors > 0) {
+                  this.totalErrorUrls++;
+                }
                 resolveTest({
                   uniqueLinks
                 });
@@ -886,6 +958,9 @@ class LinkTester {
               if (urlsChecked == totalElements) {
                 if (this.verbose && bar) {
                   bar.stop();
+                }
+                if (totalErrors > 0) {
+                  this.totalErrorUrls++;
                 }
                 resolveTest({
                   uniqueLinks
@@ -915,246 +990,152 @@ class LinkTester {
     });
   }
 }
-class LocalFlow {
-  constructor(output = "cli", verbose = true) {
-    this.output = output;
+class ProductionFlow {
+  constructor(verbose = false) {
+    this.runData = null;
+    this.testLog = null;
     this.verbose = verbose;
-    let runData = null;
-    fs.readFile("./data/session.json", (err, buf) => {
-      if (err) {
-        runData = null;
-      }
-      try {
-        runData = JSON.parse(buf.toString());
-      } catch (error) {
-        runData = null;
-      }
-      this.startFlow(runData);
-    });
+    console.log("Running production flow");
+    try {
+      this.runData = JSON.parse(
+        fs.readFileSync("./data/production.json", "utf8")
+      );
+      this.testLog = JSON.parse(fs.readFileSync("./data/log.json", "utf8"));
+      this.startFlow();
+    } catch (error) {
+      console.log(error);
+    }
   }
-  startFlow(runData) {
-    (async () => {
-      if (this.output === "cli-choose") {
-        const renderChoice = await prompts({
-          type: "select",
-          name: "value",
-          message: "Where should the errors be exported to?",
-          choices: [
-            { title: "CLI", value: "cli" },
-            { title: "HTML", value: "html" }
-          ],
-          initial: 0
-        });
-        this.output = renderChoice.value;
-      }
-      let responseTool = { value: "" };
-      let type = { value: "" };
-      let sitemap = { value: "" };
-      let url = { value: "" };
-      let project = { value: "" };
-      let externalUrl = { value: "" };
-      const prompt = {
-        type: "select",
-        name: "value",
-        message: "What do you want to do?",
-        choices: [
-          { title: "Test A11y", value: "a11y" },
-          { title: "Test HTML", value: "html" },
-          { title: "Test Broken Links", value: "links" },
-          { title: "Nothing (Exit)", value: "exit" }
-        ],
-        initial: 0
-      };
-      if (runData && prompt.choices && prompt.choices.length > 0) {
-        prompt.choices.unshift({
-          title: `Run last session again (${runData.responseTool}-test for ${runData.url})`,
-          value: "runAgain"
-        });
-      }
-      responseTool = await prompts(prompt);
-      if (responseTool.value != "runAgain" && responseTool.value != "exit") {
-        type = await prompts({
-          type: "select",
-          name: "value",
-          message: "What do you want to test?",
-          choices: [
-            { title: "Sitemap", value: "sitemap" },
-            { title: "URL", value: "url" }
-          ],
-          initial: 0
-        });
-        switch (type.value) {
-          case "sitemap":
-            sitemap = await prompts({
-              type: "select",
-              name: "value",
-              message: "Where is the sitemap?",
-              choices: [
-                { title: "Local project", value: "project" },
-                { title: "External URL", value: "externalUrl" }
-              ],
-              initial: 0
-            });
-            switch (sitemap.value) {
-              case "project":
-                project = await prompts({
-                  type: "text",
-                  name: "value",
-                  message: "What is the project code?"
-                });
-                break;
-              case "externalUrl":
-                externalUrl = await prompts({
-                  type: "text",
-                  name: "value",
-                  message: "What is the URL to the sitemap?"
-                });
-                break;
-            }
-            break;
-          case "url":
-            url = await prompts({
-              type: "text",
-              name: "value",
-              message: "What is the URL?"
-            });
-            break;
+  startFlow() {
+    this.runData.tests = this.runData.tests.filter((test) => {
+      const lastExecution = this.testLog.executions.filter(
+        (execution) => execution.projectCode === test.projectCode
+      );
+      if (lastExecution.length > 0) {
+        const lastExecutionDate = new Date(lastExecution[0].created);
+        const nextExecutionDate = new Date(
+          lastExecutionDate.getTime() + test.frequency * 864e5
+        );
+        if (nextExecutionDate.getTime() < (/* @__PURE__ */ new Date()).getTime()) {
+          return true;
         }
-        runData = {
-          responseTool: responseTool.value,
-          type: type.value,
-          sitemap: sitemap.value,
-          url: url.value,
-          project: project.value,
-          externalUrl: externalUrl.value
-        };
       } else {
-        if (responseTool.value != "exit") {
-          responseTool.value = runData.responseTool;
-        }
-        type.value = runData.type;
-        sitemap.value = runData.sitemap;
-        url.value = runData.url;
-        project.value = runData.project;
-        externalUrl.value = runData.externalUrl;
+        return true;
       }
-      if (responseTool.value === "html") {
-        const htmlTester = new HTMLTester();
-        if (type.value === "sitemap") {
-          if (sitemap.value === "project") {
-            await htmlTester.test(
-              `http://${project.value}.local.statik.be/sitemap.xml`,
-              "",
-              false,
-              this.output,
-              this.verbose
-            );
-            runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
-          } else {
-            await htmlTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
-            runData.url = externalUrl.value;
-          }
+      console.log(`Skipping ${test.projectCode} - ${lastExecution[0].date}`);
+      return false;
+    });
+    this.runTests();
+  }
+  runTests() {
+    if (this.runData.tests.length > 0) {
+      const test = this.runData.tests.shift();
+      console.log(`Running tests for ${test.projectCode}`);
+      this.runTest(test).then((result) => {
+        result.map((r) => {
+          r.numberOfUrlsWithoutErrors = r.numberOfUrls - r.numberOfUrlsWithErrors;
+          r.passed = r.numberOfUrlsWithErrors === 0;
+          return r;
+        });
+        const now = /* @__PURE__ */ new Date();
+        const date = `${now.toLocaleDateString("nl-BE", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        })} | ${now.toLocaleTimeString("nl-BE")}`;
+        const logItem = this.testLog.executions.find(
+          (e) => e.projectCode === test.projectCode
+        );
+        if (logItem) {
+          logItem.created = now.toISOString();
+          logItem.date = date;
+          logItem.results = result;
+        } else {
+          this.testLog.executions.push({
+            projectCode: test.projectCode,
+            created: now.toISOString(),
+            date,
+            results: result
+          });
         }
-        if (type.value === "url") {
-          await htmlTester.test(
-            null,
-            url.value,
-            true,
-            this.output,
-            this.verbose
-          );
-          runData.url = url.value;
-        }
-      }
-      if (responseTool.value === "a11y") {
-        const a11yTester = new A11yTester();
-        if (type.value === "sitemap") {
-          if (sitemap.value === "project") {
-            await a11yTester.test(
-              `http://${project.value}.local.statik.be/sitemap.xml`,
-              "",
-              false,
-              this.output,
-              this.verbose
-            );
-            runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
-          } else {
-            await a11yTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
-            runData.url = externalUrl.value;
-          }
-        }
-        if (type.value === "url") {
-          await a11yTester.test(
-            null,
-            url.value,
-            true,
-            this.output,
-            this.verbose
-          );
-          runData.url = url.value;
-        }
-      }
-      if (responseTool.value === "links") {
-        const linksTester = new LinkTester();
-        if (type.value === "sitemap") {
-          if (sitemap.value === "project") {
-            await linksTester.test(
-              `http://${project.value}.local.statik.be/sitemap.xml`,
-              "",
-              false,
-              this.output,
-              this.verbose
-            );
-            runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
-          } else {
-            await linksTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
-            runData.url = externalUrl.value;
-          }
-        }
-        if (type.value === "url") {
-          await linksTester.test(
-            null,
-            url.value,
-            true,
-            this.output,
-            this.verbose
-          );
-          runData.url = url.value;
-        }
-      }
-      if (responseTool.value != "exit") {
+        this.runTests();
+      });
+    } else {
+      console.log("All done");
+      const manifest = Helper.getFrontendManifest();
+      fs.readFile("./templates/index.html", (err, buf) => {
         fs.writeFile(
-          "./data/session.json",
-          JSON.stringify(runData),
-          function(err) {
-            if (err)
-              console.log(err);
+          "./public/index.html",
+          mustache.render(buf.toString(), {
+            manifest,
+            testedUrls: this.testLog.executions
+          }),
+          (err2) => {
+            if (err2)
+              throw err2;
+            open("./public/index.html", {
+              app: {
+                name: "google chrome",
+                arguments: ["--allow-file-access-from-files"]
+              }
+            });
           }
         );
+      });
+      fs.writeFile("./data/log.json", JSON.stringify(this.testLog), (err) => {
+        if (err)
+          throw err;
+      });
+    }
+  }
+  runTest(test) {
+    const testResults = [];
+    return new Promise((resolve, reject) => {
+      if (test.tests.length > 0) {
+        const testName = test.tests.shift();
+        console.log(`Running ${testName} test for ${test.projectCode}`);
+        switch (testName) {
+          case "html":
+            const htmlTester = new HTMLTester();
+            htmlTester.test(test.sitemap, test.url, true, "html", this.verbose, true).then((testResult) => {
+              testResult.type = "html";
+              testResults.push(testResult);
+              this.runTest(test).then((result) => {
+                resolve([...testResults, ...result]);
+              });
+            });
+            break;
+          case "a11y":
+            const a11yTester = new A11yTester();
+            a11yTester.test(test.sitemap, test.url, true, "html", this.verbose, true).then((testResult) => {
+              testResult.type = "a11y";
+              testResults.push(testResult);
+              this.runTest(test).then((result) => {
+                resolve([...testResults, ...result]);
+              });
+            });
+            break;
+          case "links":
+            const linkTester = new LinkTester();
+            linkTester.test(test.sitemap, test.url, true, "html", this.verbose, true).then((testResult) => {
+              testResult.type = "links";
+              testResults.push(testResult);
+              this.runTest(test).then((result) => {
+                resolve([...testResults, ...result]);
+              });
+            });
+            break;
+        }
+      } else {
+        resolve(testResults);
       }
-    })();
+    });
+  }
+  addToIndex(test, testResult) {
   }
 }
 {
   {
-    new LocalFlow("cli-choose", "true");
+    new ProductionFlow("true");
   }
 }

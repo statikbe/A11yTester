@@ -2,55 +2,16 @@ import colors from "colors";
 import { HTMLRenderer } from "./html-renderer";
 import { A11yRenderer } from "./a11y-renderer";
 import { LinksRenderer } from "./links-renderer";
-
-export type RenderType = "cli" | "json" | "html";
-export type OutputType = "a11yTester" | "htmlTester" | "linkTester";
-
-export type HTMLErrorMessage = {
-  message: string;
-  line?: number;
-  column?: number;
-  selector?: string;
-  ruleId?: string;
-  ruleUrl?: string;
-};
-
-export type OutputTypeHTML = {
-  url: string;
-  errorMessages: HTMLErrorMessage[];
-  numberOfErrors?: number;
-  id?: string;
-};
-
-export type BrokenLink = {
-  url: string;
-  status: string;
-  tag?: string;
-  selector?: string;
-  linkText?: string;
-};
-
-export type OutputTypeLink = {
-  url: string;
-  brokenLinks: BrokenLink[];
-  okLinks?: BrokenLink[];
-  numberOfErrors?: number;
-  numberOfOKLinks?: number;
-  id?: string;
-};
-
-export type A11yErrorMessage = {
-  message: string;
-  selector?: string;
-  context?: string;
-};
-
-export type OutputTypeA11y = {
-  url: string;
-  errorMessages: A11yErrorMessage[];
-  numberOfErrors?: number;
-  id?: string;
-};
+import {
+  A11yErrorMessage,
+  BrokenLink,
+  HTMLErrorMessage,
+  OutputType,
+  OutputTypeA11y,
+  OutputTypeHTML,
+  OutputTypeLink,
+  RenderType,
+} from "./types";
 
 export class Output {
   private outputHTML: OutputTypeHTML[] = [];
@@ -81,18 +42,16 @@ export class Output {
     }
   }
 
-  public render(type: RenderType) {
+  public render(type: RenderType, exportForProduction = false) {
     switch (this.outputType) {
       case "a11yTester":
-        this.renderA11yOutput(type);
-        break;
+        return this.renderA11yOutput(type, exportForProduction);
       case "htmlTester":
-        this.renderHTMLOutput(type);
-        break;
+        return this.renderHTMLOutput(type, exportForProduction);
       case "linkTester":
-        this.renderBrokenLinkOutput(type);
-        break;
+        return this.renderBrokenLinkOutput(type, exportForProduction);
     }
+    return "";
   }
 
   private addAlly(url: string, errorMessage: A11yErrorMessage) {
@@ -131,7 +90,7 @@ export class Output {
     }
   }
 
-  private renderA11yOutput(type: RenderType) {
+  private renderA11yOutput(type: RenderType, exportForProduction: boolean) {
     const a11yRenderer = new A11yRenderer(this.outputA11y);
     switch (type) {
       case "cli":
@@ -139,14 +98,13 @@ export class Output {
         break;
       case "json":
         return JSON.stringify(this.outputA11y);
-        break;
       case "html":
-        a11yRenderer.renderA11yOutputHTML(this.url);
-        break;
+        return a11yRenderer.renderA11yOutputHTML(this.url, exportForProduction);
     }
+    return "";
   }
 
-  private renderHTMLOutput(type: RenderType) {
+  private renderHTMLOutput(type: RenderType, exportForProduction: boolean) {
     const htmlRenderer = new HTMLRenderer(this.outputHTML);
     switch (type) {
       case "cli":
@@ -154,14 +112,16 @@ export class Output {
         break;
       case "json":
         return JSON.stringify(this.outputHTML);
-        break;
       case "html":
-        htmlRenderer.renderHTMLOutputHTML(this.url);
-        break;
+        return htmlRenderer.renderHTMLOutputHTML(this.url, exportForProduction);
     }
+    return "";
   }
 
-  private renderBrokenLinkOutput(type: RenderType) {
+  private renderBrokenLinkOutput(
+    type: RenderType,
+    exportForProduction: boolean
+  ) {
     const linksRenderer = new LinksRenderer(this.outputLinks);
     switch (type) {
       case "cli":
@@ -169,10 +129,12 @@ export class Output {
         break;
       case "json":
         return JSON.stringify(this.outputLinks);
-        break;
       case "html":
-        linksRenderer.renderHTMLOutputHTML(this.url);
-        break;
+        return linksRenderer.renderBrokenLinkOutputHTML(
+          this.url,
+          exportForProduction
+        );
     }
+    return "";
   }
 }

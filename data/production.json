@@ -1,11 +1,20 @@
 {
   "tests": [
     {
-      "sitemap": "https://www.statik.be/sitemap.xml",
-      "url": "",
+      "sitemap": "",
+      "url": "https://www.statik.be",
       "projectCode": "INTCRA",
       "slackChannel": "",
-      "tests": ["a11y", "html", "links"]
+      "tests": ["a11y", "html", "links"],
+      "frequency": 1
+    },
+    {
+      "sitemap": "",
+      "url": "https://www.oka.be/nl",
+      "projectCode": "OKAWEB",
+      "slackChannel": "",
+      "tests": ["a11y", "html", "links"],
+      "frequency": 1
     }
   ]
 }

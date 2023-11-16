@@ -3,7 +3,7 @@ import * as fs from "fs";
 import { HTMLTester } from "./html-tester";
 import { A11yTester } from "./a11y-tester";
 import { LinkTester } from "./links-tester";
-import { RenderType } from "./output";
+import { RenderType } from "./types";
 
 export class LocalFlow {
   private output: RenderType | "cli-choose";

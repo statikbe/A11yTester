@@ -6,7 +6,8 @@ import { Helper } from "./helpers";
 import * as cheerio from "cheerio";
 import * as uniqueSelector from "cheerio-get-css-selector";
 import * as cliProgress from "cli-progress";
-import { Output, RenderType } from "./output";
+import { Output } from "./output";
+import { RenderType, TestResult } from "./types";
 
 export class LinkTester {
   private output: Output;
@@ -14,6 +15,11 @@ export class LinkTester {
   private urls: string[] = [];
   private outputType: RenderType = "cli";
   private verbose = true;
+  private exportForProduction = false;
+  private testPromise: Promise<any> | null = null;
+  private testResolve: any;
+  private totalUrls = 0;
+  private totalErrorUrls = 0;
 
   constructor() {
     colors.enable();
@@ -25,16 +31,20 @@ export class LinkTester {
     url = "",
     external: boolean = false,
     output: string = "cli",
-    verbose: boolean = true
+    verbose: boolean = true,
+    exportForProduction = false
   ) {
     this.external = external;
     this.outputType = output as RenderType;
     this.verbose = verbose;
+    this.exportForProduction = exportForProduction;
 
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
     }
+
+    this.totalUrls = this.urls.length;
 
     if (sitemapUrl) {
       Promise.resolve()
@@ -42,6 +52,7 @@ export class LinkTester {
           Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
             if (urls) {
               this.urls = urls;
+              this.totalUrls = urls.length;
               this.testUrls();
             }
           });
@@ -54,6 +65,11 @@ export class LinkTester {
     } else {
       this.testUrls();
     }
+
+    this.testPromise = new Promise((resolve, reject) => {
+      this.testResolve = resolve;
+    });
+    return this.testPromise;
   }
 
   private testUrls() {
@@ -95,7 +111,17 @@ export class LinkTester {
           this.testLinks(baseUrl, uniqueLinks);
         }
       } else {
-        this.output.render(this.outputType);
+        const filename = this.output.render(
+          this.outputType,
+          this.exportForProduction
+        );
+        const testResult: TestResult = {
+          filename: filename,
+          numberOfUrls: this.totalUrls,
+          numberOfUrlsWithErrors: this.totalErrorUrls,
+        };
+
+        this.testResolve(testResult);
       }
     });
   }
@@ -279,6 +305,9 @@ export class LinkTester {
                     if (this.verbose && bar) {
                       bar.stop();
                     }
+                    if (totalErrors > 0) {
+                      this.totalErrorUrls++;
+                    }
                     resolveTest({
                       uniqueLinks: uniqueLinks,
                     });
@@ -300,6 +329,9 @@ export class LinkTester {
                   if (urlsChecked == totalElements) {
                     if (this.verbose && bar) {
                       bar.stop();
+                    }
+                    if (totalErrors > 0) {
+                      this.totalErrorUrls++;
                     }
                     resolveTest({
                       uniqueLinks: uniqueLinks,

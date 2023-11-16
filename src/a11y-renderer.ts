@@ -3,7 +3,7 @@ import * as fs from "fs";
 import mustache from "mustache";
 import open from "open";
 import { Helper } from "./helpers";
-import { A11yErrorMessage, OutputTypeA11y } from "./output";
+import { A11yErrorMessage, OutputTypeA11y } from "./types";
 
 export class A11yRenderer {
   private outputA11y: OutputTypeA11y[] = [];
@@ -36,27 +36,31 @@ export class A11yRenderer {
     url: string,
     exportForProduction: boolean = false
   ) {
-    fs.readFile("./templates/a11yTester.html", (err: any, buf: any) => {
-      const now = new Date();
-      let fileName = "";
-      const manifest = Helper.getFrontendManifest();
-      const mainUrl = new URL(url);
-      this.outputA11y.map((output) => {
-        output.numberOfErrors = output.errorMessages.length;
-        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
-      });
+    const now = new Date();
+    let fileName = "";
+    let path = "";
+    const manifest = Helper.getFrontendManifest();
+    const mainUrl = new URL(url);
+    this.outputA11y.map((output) => {
+      output.numberOfErrors = output.errorMessages.length;
+      output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
+    });
 
-      if (exportForProduction) {
-        fileName = `./public/html/a11y-test-${mainUrl.origin.replace(
-          /[^a-zA-Z0-9]/g,
-          ""
-        )}.html`;
-      } else {
-        fileName = `./public/tmp/${now.getTime()}.html`;
-        Helper.clearDirectory("./public/tmp");
-      }
+    if (exportForProduction) {
+      fileName = `a11y-test-${mainUrl.origin.replace(
+        /[^a-zA-Z0-9]/g,
+        ""
+      )}.html`;
+      path = `./public/html/${fileName}`;
+    } else {
+      fileName = `${now.getTime()}.html`;
+      path = `./public/tmp/${fileName}`;
+      Helper.clearDirectory("./public/tmp");
+    }
+
+    fs.readFile("./templates/a11yTester.html", (err: any, buf: any) => {
       fs.writeFile(
-        fileName,
+        path,
         mustache.render(buf.toString(), {
           manifest: manifest,
           mainUrl: mainUrl.origin,
@@ -77,5 +81,7 @@ export class A11yRenderer {
         }
       );
     });
+
+    return fileName;
   }
 }

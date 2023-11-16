@@ -5,16 +5,21 @@
 import * as pa11y from "pa11y";
 import colors from "colors";
 import { Helper } from "./helpers";
-import { Output, RenderType } from "./output";
+import { Output } from "./output";
+import { RenderType, TestResult } from "./types";
 
 export class A11yTester {
   private external = false;
   private output: Output;
   private currentUrl = 1;
   private totalUrls = 0;
+  private totalErrorUrls = 0;
   private urls: string[] = [];
   private outputType: RenderType = "cli";
   private verbose = true;
+  private exportForProduction = false;
+  private testPromise: Promise<any> | null = null;
+  private testResolve: any;
 
   constructor() {
     colors.enable();
@@ -26,11 +31,14 @@ export class A11yTester {
     url = "",
     external: boolean = false,
     output: RenderType = "cli",
-    verbose: boolean = true
+    verbose: boolean = true,
+    exportForProduction = false
   ) {
     this.outputType = output;
     this.verbose = verbose;
     this.external = external;
+    this.exportForProduction = exportForProduction;
+
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
@@ -53,6 +61,11 @@ export class A11yTester {
     } else {
       this.testUrls();
     }
+
+    this.testPromise = new Promise((resolve, reject) => {
+      this.testResolve = resolve;
+    });
+    return this.testPromise;
   }
 
   private testUrls() {
@@ -95,6 +108,7 @@ export class A11yTester {
           console.log(colors.green("0 errors"));
         } else {
           console.log(colors.red(`${results.issues.length} errors`));
+          this.totalErrorUrls++;
         }
       }
 
@@ -112,7 +126,16 @@ export class A11yTester {
         }, 100);
       }
       if (this.external && this.urls.length == 0) {
-        this.output.render(this.outputType);
+        const filename = this.output.render(
+          this.outputType,
+          this.exportForProduction
+        );
+        const testResult: TestResult = {
+          filename: filename,
+          numberOfUrls: this.totalUrls,
+          numberOfUrlsWithErrors: this.totalErrorUrls,
+        };
+        this.testResolve(testResult);
       }
     });
   }

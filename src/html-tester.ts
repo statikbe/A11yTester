@@ -4,17 +4,22 @@
 import { HtmlValidate } from "html-validate/node";
 import colors from "colors";
 import { Helper } from "./helpers";
-import { HTMLErrorMessage, Output, RenderType } from "./output";
+import { Output } from "./output";
+import { HTMLErrorMessage, RenderType, TestResult } from "./types";
 
 export class HTMLTester {
   private output: Output;
   private currentUrl = 1;
   private totalUrls = 0;
+  private totalErrorUrls = 0;
   private htmlvalidate: HtmlValidate;
   private external = false;
   private urls: string[] = [];
   private outputType: RenderType = "cli";
   private verbose = true;
+  private exportForProduction = false;
+  private testPromise: Promise<any> | null = null;
+  private testResolve: any;
 
   constructor() {
     colors.enable();
@@ -41,11 +46,13 @@ export class HTMLTester {
     url = "",
     external: boolean = false,
     output: RenderType = "cli",
-    verbose: boolean = true
+    verbose: boolean = true,
+    exportForProduction = false
   ) {
     this.external = external;
     this.outputType = output;
     this.verbose = verbose;
+    this.exportForProduction = exportForProduction;
 
     this.urls = [];
     if (url.length > 0) {
@@ -70,6 +77,11 @@ export class HTMLTester {
     } else {
       this.testUrls();
     }
+
+    this.testPromise = new Promise((resolve, reject) => {
+      this.testResolve = resolve;
+    });
+    return this.testPromise;
   }
 
   private testUrls() {
@@ -156,6 +168,7 @@ export class HTMLTester {
         console.log(colors.green("0 errors"));
       } else {
         console.log(colors.red(`${errors} errors`));
+        this.totalErrorUrls++;
       }
     }
 
@@ -164,7 +177,16 @@ export class HTMLTester {
     }
 
     if (this.currentUrl == this.totalUrls) {
-      this.output.render(this.outputType);
+      const filename = this.output.render(
+        this.outputType,
+        this.exportForProduction
+      );
+      const testResult: TestResult = {
+        filename: filename,
+        numberOfUrls: this.totalUrls,
+        numberOfUrlsWithErrors: this.totalErrorUrls,
+      };
+      this.testResolve(testResult);
     }
 
     if (this.external && this.urls.length > 0) {

@@ -3,7 +3,7 @@ import * as fs from "fs";
 import mustache from "mustache";
 import open from "open";
 import { Helper } from "./helpers";
-import { BrokenLink, OutputTypeLink } from "./output";
+import { BrokenLink, OutputTypeLink } from "./types";
 
 export class LinksRenderer {
   private outputLinks: OutputTypeLink[] = [];
@@ -37,40 +37,44 @@ export class LinksRenderer {
     }
   }
 
-  public renderHTMLOutputHTML(
+  public renderBrokenLinkOutputHTML(
     url: string,
     exportForProduction: boolean = false
   ) {
-    fs.readFile("./templates/linkTester.html", (err: any, buf: any) => {
-      const now = new Date();
-      let fileName = "";
-      const manifest = Helper.getFrontendManifest();
-      const mainUrl = new URL(url);
-      this.outputLinks.map((output) => {
-        output.numberOfErrors = output.brokenLinks.filter(
-          (bl) => bl.status != "200"
-        ).length;
-        output.numberOfOKLinks = output.brokenLinks.filter(
-          (bl) => bl.status == "200"
-        ).length;
-        output.okLinks = output.brokenLinks.filter((bl) => bl.status == "200");
-        output.brokenLinks = output.brokenLinks.filter(
-          (bl) => bl.status != "200"
-        );
-        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
-      });
+    const now = new Date();
+    let fileName = "";
+    let path = "";
+    const manifest = Helper.getFrontendManifest();
+    const mainUrl = new URL(url);
+    this.outputLinks.map((output) => {
+      output.numberOfErrors = output.brokenLinks.filter(
+        (bl) => bl.status != "200"
+      ).length;
+      output.numberOfOKLinks = output.brokenLinks.filter(
+        (bl) => bl.status == "200"
+      ).length;
+      output.okLinks = output.brokenLinks.filter((bl) => bl.status == "200");
+      output.brokenLinks = output.brokenLinks.filter(
+        (bl) => bl.status != "200"
+      );
+      output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
+    });
 
-      if (exportForProduction) {
-        fileName = `./public/html/link-test-${mainUrl.origin.replace(
-          /[^a-zA-Z0-9]/g,
-          ""
-        )}.html`;
-      } else {
-        fileName = `./public/tmp/${now.getTime()}.html`;
-        Helper.clearDirectory("./public/tmp");
-      }
+    if (exportForProduction) {
+      fileName = `link-test-${mainUrl.origin.replace(
+        /[^a-zA-Z0-9]/g,
+        ""
+      )}.html`;
+      path = `./public/html/${fileName}`;
+    } else {
+      fileName = `${now.getTime()}.html`;
+      path = `./public/tmp/${fileName}`;
+      Helper.clearDirectory("./public/tmp");
+    }
+
+    fs.readFile("./templates/linkTester.html", (err: any, buf: any) => {
       fs.writeFile(
-        fileName,
+        path,
         mustache.render(buf.toString(), {
           manifest: manifest,
           mainUrl: mainUrl.origin,
@@ -91,5 +95,6 @@ export class LinksRenderer {
         }
       );
     });
+    return fileName;
   }
 }
