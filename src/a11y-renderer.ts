@@ -4,6 +4,7 @@ import mustache from "mustache";
 import open from "open";
 import { Helper } from "./helpers";
 import { A11yErrorMessage, OutputTypeA11y } from "./types";
+import { RefreshServer } from "./refresh-server";
 
 export class A11yRenderer {
   private outputA11y: OutputTypeA11y[] = [];
@@ -34,11 +35,13 @@ export class A11yRenderer {
 
   public renderA11yOutputHTML(
     url: string,
-    exportForProduction: boolean = false
+    exportForProduction: boolean = false,
+    snippet: boolean = false
   ) {
     const now = new Date();
     let fileName = "";
     let path = "";
+    let body = "";
     const manifest = Helper.getFrontendManifest();
     const mainUrl = new URL(url);
     this.outputA11y.map((output) => {
@@ -58,30 +61,39 @@ export class A11yRenderer {
       Helper.clearDirectory("./public/tmp");
     }
 
-    fs.readFile("./templates/a11yTester.html", (err: any, buf: any) => {
-      fs.writeFile(
-        path,
-        mustache.render(buf.toString(), {
-          manifest: manifest,
-          mainUrl: mainUrl.origin,
-          date: now.toLocaleString(),
-          testedUrls: this.outputA11y,
-        }),
-        (err: any) => {
-          if (err) throw err;
-          if (exportForProduction) {
-          } else {
-            open(fileName, {
-              app: {
-                name: "google chrome",
-                arguments: ["--allow-file-access-from-files"],
-              },
-            });
-          }
-        }
-      );
+    const template = fs.readFileSync("./templates/a11yTester.html", "utf8");
+
+    body = mustache.render(template, {
+      manifest: manifest,
+      mainUrl: mainUrl.origin,
+      date: now.toLocaleString(),
+      local: !exportForProduction,
+      testedUrls: this.outputA11y,
     });
 
-    return fileName;
+    if (!snippet) {
+      fs.writeFile(path, body, (err: any) => {
+        if (err) throw err;
+        if (exportForProduction) {
+        } else {
+          open(path, {
+            app: {
+              name: "google chrome",
+              arguments: ["--allow-file-access-from-files"],
+            },
+          });
+          if (!exportForProduction) {
+            const refreshServer = new RefreshServer();
+            refreshServer.listenForA11yChanges();
+          }
+        }
+      });
+    }
+
+    if (snippet) {
+      return body;
+    } else {
+      return fileName;
+    }
   }
 }

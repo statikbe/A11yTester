@@ -4,6 +4,7 @@ import mustache from "mustache";
 import open from "open";
 import { Helper } from "./helpers";
 import { HTMLErrorMessage, OutputTypeHTML } from "./types";
+import { RefreshServer } from "./refresh-server";
 
 export class HTMLRenderer {
   private outputHTML: OutputTypeHTML[] = [];
@@ -41,13 +42,19 @@ export class HTMLRenderer {
 
   public renderHTMLOutputHTML(
     url: string,
-    exportForProduction: boolean = false
+    exportForProduction: boolean = false,
+    snippet: boolean = false
   ) {
     const now = new Date();
     const mainUrl = new URL(url);
     let fileName = "";
     let path = "";
+    let body = "";
     const manifest = Helper.getFrontendManifest();
+    this.outputHTML.map((output) => {
+      output.numberOfErrors = output.errorMessages.length;
+      output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
+    });
 
     if (exportForProduction) {
       fileName = `html-test-${mainUrl.origin.replace(
@@ -61,34 +68,38 @@ export class HTMLRenderer {
       Helper.clearDirectory("./public/tmp");
     }
 
-    fs.readFile("./templates/htmlTester.html", (err: any, buf: any) => {
-      this.outputHTML.map((output) => {
-        output.numberOfErrors = output.errorMessages.length;
-        output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
-      });
+    const template = fs.readFileSync("./templates/htmlTester.html", "utf8");
+    body = mustache.render(template, {
+      manifest: manifest,
+      mainUrl: mainUrl.origin,
+      date: now.toLocaleString(),
+      local: !exportForProduction,
+      testedUrls: this.outputHTML,
+    });
 
-      fs.writeFile(
-        path,
-        mustache.render(buf.toString(), {
-          manifest: manifest,
-          mainUrl: mainUrl.origin,
-          date: now.toLocaleString(),
-          testedUrls: this.outputHTML,
-        }),
-        (err: any) => {
-          if (err) throw err;
-          if (exportForProduction) {
-          } else {
-            open(fileName, {
-              app: {
-                name: "google chrome",
-                arguments: ["--allow-file-access-from-files"],
-              },
-            });
+    if (!snippet) {
+      fs.writeFile(path, body, (err: any) => {
+        if (err) throw err;
+        if (exportForProduction) {
+        } else {
+          open(path, {
+            app: {
+              name: "google chrome",
+              arguments: ["--allow-file-access-from-files"],
+            },
+          });
+          if (!exportForProduction) {
+            const refreshServer = new RefreshServer();
+            refreshServer.listenForHtmlChanges();
           }
         }
-      );
-    });
-    return fileName;
+      });
+    }
+
+    if (snippet) {
+      return body;
+    } else {
+      return fileName;
+    }
   }
 }

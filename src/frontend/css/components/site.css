@@ -12,3 +12,22 @@
     @mixin icon-before check;
   }
 }
+
+.retest-btn {
+  @apply text-2xl text-emerald-600;
+  @mixin icon-before retest;
+
+  &.testing {
+    animation: forwards 1s infinite retest-btn;
+  }
+}
+
+@keyframes retest-btn {
+  0% {
+    transform: rotateZ(0deg);
+  }
+
+  100% {
+    transform: rotateZ(-360deg);
+  }
+}

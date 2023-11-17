@@ -1,7 +1,7 @@
 import { type } from "os";
 
 // Output Types
-export type RenderType = "cli" | "json" | "html";
+export type RenderType = "cli" | "json" | "html" | "html-snippet";
 export type OutputType = "a11yTester" | "htmlTester" | "linkTester";
 
 export type HTMLErrorMessage = {

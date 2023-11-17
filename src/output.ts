@@ -98,6 +98,12 @@ export class Output {
         break;
       case "json":
         return JSON.stringify(this.outputA11y);
+      case "html-snippet":
+        return a11yRenderer.renderA11yOutputHTML(
+          this.url,
+          exportForProduction,
+          true
+        );
       case "html":
         return a11yRenderer.renderA11yOutputHTML(this.url, exportForProduction);
     }
@@ -112,6 +118,12 @@ export class Output {
         break;
       case "json":
         return JSON.stringify(this.outputHTML);
+      case "html-snippet":
+        return htmlRenderer.renderHTMLOutputHTML(
+          this.url,
+          exportForProduction,
+          true
+        );
       case "html":
         return htmlRenderer.renderHTMLOutputHTML(this.url, exportForProduction);
     }
@@ -129,6 +141,12 @@ export class Output {
         break;
       case "json":
         return JSON.stringify(this.outputLinks);
+      case "html-snippet":
+        return linksRenderer.renderBrokenLinkOutputHTML(
+          this.url,
+          exportForProduction,
+          true
+        );
       case "html":
         return linksRenderer.renderBrokenLinkOutputHTML(
           this.url,

@@ -28,11 +28,22 @@
       <p class="text-base opacity-50">Created at: {{ date }}</p>
       <h2 class="mt-6">Urls with errors:</h2>
       {{#testedUrls}}
-      <div class="mt-4">
+      <div class="mt-4" id="{{id}}-container">
         <div class="flex items-center">
           <a href="{{& url}}" target="_blank" class="mr-2 open-link">
             <span class="sr-only">Open Link</span>
           </a>
+          {{#local}}
+          <button
+            type="button"
+            class="mx-2 retest-btn js-retest-btn"
+            data-api="http://localhost:3030/html-retest"
+            data-url="{{& url}}"
+            data-element="{{id}}-container"
+          >
+            <span class="sr-only">Retest</span>
+          </button>
+          {{/local}}
           <div
             class="flex items-center justify-between flex-1 cursor-pointer"
             data-s-toggle-target="{{id}}"

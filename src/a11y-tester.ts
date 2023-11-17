@@ -95,48 +95,55 @@ export class A11yTester {
   }
 
   private testUrl(url: string): Promise<any> {
-    return pa11y.default(url, {}).then((results: any) => {
-      this.currentUrl++;
-      if (this.verbose) {
-        process.stdout.write(colors.cyan(" > "));
-        process.stdout.write(
-          colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
-        );
-        process.stdout.write(url);
-        process.stdout.write(" - ");
-        if (results.issues.length == 0) {
-          console.log(colors.green("0 errors"));
-        } else {
-          console.log(colors.red(`${results.issues.length} errors`));
-          this.totalErrorUrls++;
+    return pa11y
+      .default(url, {
+        runners: ["htmlcs"],
+        standard: "WCAG2AAA",
+        userAgent:
+          "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
+      })
+      .then((results: any) => {
+        this.currentUrl++;
+        if (this.verbose) {
+          process.stdout.write(colors.cyan(" > "));
+          process.stdout.write(
+            colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
+          );
+          process.stdout.write(url);
+          process.stdout.write(" - ");
+          if (results.issues.length == 0) {
+            console.log(colors.green("0 errors"));
+          } else {
+            console.log(colors.red(`${results.issues.length} errors`));
+            this.totalErrorUrls++;
+          }
         }
-      }
 
-      results.issues.forEach((issue: any) => {
-        this.output.add(url, {
-          message: issue.message,
-          selector: issue.selector,
-          context: issue.context,
+        results.issues.forEach((issue: any) => {
+          this.output.add(url, {
+            message: issue.message,
+            selector: issue.selector,
+            context: issue.context,
+          });
         });
-      });
 
-      if (this.external && this.urls.length > 0) {
-        setTimeout(() => {
-          this.testUrl(this.urls.pop() as string);
-        }, 100);
-      }
-      if (this.external && this.urls.length == 0) {
-        const filename = this.output.render(
-          this.outputType,
-          this.exportForProduction
-        );
-        const testResult: TestResult = {
-          filename: filename,
-          numberOfUrls: this.totalUrls,
-          numberOfUrlsWithErrors: this.totalErrorUrls,
-        };
-        this.testResolve(testResult);
-      }
-    });
+        if (this.external && this.urls.length > 0) {
+          setTimeout(() => {
+            this.testUrl(this.urls.pop() as string);
+          }, 100);
+        }
+        if (this.external && this.urls.length == 0) {
+          const renderOutput = this.output.render(
+            this.outputType,
+            this.exportForProduction
+          );
+          const testResult: TestResult = {
+            filename: renderOutput,
+            numberOfUrls: this.totalUrls,
+            numberOfUrlsWithErrors: this.totalErrorUrls,
+          };
+          this.testResolve(testResult);
+        }
+      });
   }
 }

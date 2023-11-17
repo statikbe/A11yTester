@@ -1,3 +1,6 @@
+import { Ajax } from "../utils/ajax";
+import { DOMHelper } from "../utils/domHelper";
+
 export class SiteComponent {
   constructor() {
     const copyButtons = document.querySelectorAll(".js-copy-selector");
@@ -5,6 +8,33 @@ export class SiteComponent {
       Array.from(copyButtons).forEach((button: HTMLElement) => {
         this.initCopyButton(button);
       });
+
+      DOMHelper.onDynamicContent(
+        document.documentElement,
+        ".js-copy-selector",
+        (copyButtons) => {
+          Array.from(copyButtons).forEach((button: HTMLElement) => {
+            this.initCopyButton(button);
+          });
+        }
+      );
+    }
+
+    const retestButtons = document.querySelectorAll(".js-retest-btn");
+    if (retestButtons) {
+      Array.from(retestButtons).forEach((button: HTMLElement) => {
+        this.initRetestButton(button);
+      });
+
+      DOMHelper.onDynamicContent(
+        document.documentElement,
+        ".js-retest-btn",
+        (retestButtons) => {
+          Array.from(retestButtons).forEach((button: HTMLElement) => {
+            this.initRetestButton(button);
+          });
+        }
+      );
     }
   }
 
@@ -18,6 +48,34 @@ export class SiteComponent {
         setTimeout(() => {
           button.classList.remove("copied");
         }, 2000);
+      });
+    });
+  }
+
+  private initRetestButton(button: HTMLElement) {
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      const url = button.getAttribute("data-url");
+      const api = button.getAttribute("data-api");
+      const element = button.getAttribute("data-element");
+      const apiUrl = `${api}?url=${url}`;
+      button.classList.add("testing");
+      Ajax.call({
+        url: apiUrl,
+        method: "GET",
+        success: (response) => {
+          button.classList.remove("testing");
+          const responseElement =
+            document.implementation.createHTMLDocument("");
+          responseElement.body.innerHTML = response;
+          const oldElement = document.getElementById(element);
+          const newElement = responseElement.getElementById(element);
+          oldElement.innerHTML = newElement.innerHTML;
+        },
+        error: (response) => {
+          button.classList.remove("testing");
+          console.log(response);
+        },
       });
     });
   }

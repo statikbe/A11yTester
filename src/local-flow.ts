@@ -5,6 +5,9 @@ import { A11yTester } from "./a11y-tester";
 import { LinkTester } from "./links-tester";
 import { RenderType } from "./types";
 
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first");
+
 export class LocalFlow {
   private output: RenderType | "cli-choose";
   private verbose: boolean;
@@ -146,18 +149,28 @@ export class LocalFlow {
         externalUrl.value = runData.externalUrl;
       }
 
+      if (responseTool.value != "exit") {
+        fs.writeFile(
+          "./data/session.json",
+          JSON.stringify(runData),
+          function (err: any) {
+            if (err) console.log(err);
+          }
+        );
+      }
+
       if (responseTool.value === "html") {
         const htmlTester = new HTMLTester();
         if (type.value === "sitemap") {
           if (sitemap.value === "project") {
             await htmlTester.test(
-              `http://${project.value}.local.statik.be/sitemap.xml`,
+              `https://${project.value}.local.statik.be/sitemap.xml`,
               "",
-              false,
+              true,
               this.output as RenderType,
               this.verbose
             );
-            runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
+            runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
             await htmlTester.test(
               externalUrl.value,
@@ -186,13 +199,13 @@ export class LocalFlow {
         if (type.value === "sitemap") {
           if (sitemap.value === "project") {
             await a11yTester.test(
-              `http://${project.value}.local.statik.be/sitemap.xml`,
+              `https://${project.value}.local.statik.be/sitemap.xml`,
               "",
-              false,
+              true,
               this.output as RenderType,
               this.verbose
             );
-            runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
+            runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
             await a11yTester.test(
               externalUrl.value,
@@ -221,13 +234,13 @@ export class LocalFlow {
         if (type.value === "sitemap") {
           if (sitemap.value === "project") {
             await linksTester.test(
-              `http://${project.value}.local.statik.be/sitemap.xml`,
+              `https://${project.value}.local.statik.be/sitemap.xml`,
               "",
               false,
               this.output as RenderType,
               this.verbose
             );
-            runData.url = `http://${project.value}.local.statik.be/sitemap.xml`;
+            runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
             await linksTester.test(
               externalUrl.value,
@@ -249,16 +262,6 @@ export class LocalFlow {
           );
           runData.url = url.value;
         }
-      }
-
-      if (responseTool.value != "exit") {
-        fs.writeFile(
-          "./data/session.json",
-          JSON.stringify(runData),
-          function (err: any) {
-            if (err) console.log(err);
-          }
-        );
       }
     })();
   }

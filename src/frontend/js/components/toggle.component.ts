@@ -7,7 +7,6 @@ export class ToggleComponent {
 
   constructor() {
     const targets = document.querySelectorAll("[data-s-toggle]");
-    console.log("targets", targets);
 
     Array.from(targets).forEach((t: HTMLElement) => {
       this.initToggleTarget(t);

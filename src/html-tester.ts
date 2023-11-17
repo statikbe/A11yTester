@@ -149,6 +149,8 @@ export class HTMLTester {
           });
       })
       .catch((error) => {
+        console.log(error);
+
         this.RenderUrl(url, 1, {
           message: error,
         });
@@ -177,12 +179,12 @@ export class HTMLTester {
     }
 
     if (this.currentUrl == this.totalUrls) {
-      const filename = this.output.render(
+      const renderOutput = this.output.render(
         this.outputType,
         this.exportForProduction
       );
       const testResult: TestResult = {
-        filename: filename,
+        filename: renderOutput,
         numberOfUrls: this.totalUrls,
         numberOfUrlsWithErrors: this.totalErrorUrls,
       };

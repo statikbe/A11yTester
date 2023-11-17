@@ -111,12 +111,12 @@ export class LinkTester {
           this.testLinks(baseUrl, uniqueLinks);
         }
       } else {
-        const filename = this.output.render(
+        const renderOutput = this.output.render(
           this.outputType,
           this.exportForProduction
         );
         const testResult: TestResult = {
-          filename: filename,
+          filename: renderOutput,
           numberOfUrls: this.totalUrls,
           numberOfUrlsWithErrors: this.totalErrorUrls,
         };

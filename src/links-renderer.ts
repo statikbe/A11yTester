@@ -4,6 +4,7 @@ import mustache from "mustache";
 import open from "open";
 import { Helper } from "./helpers";
 import { BrokenLink, OutputTypeLink } from "./types";
+import { RefreshServer } from "./refresh-server";
 
 export class LinksRenderer {
   private outputLinks: OutputTypeLink[] = [];
@@ -39,11 +40,13 @@ export class LinksRenderer {
 
   public renderBrokenLinkOutputHTML(
     url: string,
-    exportForProduction: boolean = false
+    exportForProduction: boolean = false,
+    snippet: boolean = false
   ) {
     const now = new Date();
     let fileName = "";
     let path = "";
+    let body = "";
     const manifest = Helper.getFrontendManifest();
     const mainUrl = new URL(url);
     this.outputLinks.map((output) => {
@@ -72,29 +75,38 @@ export class LinksRenderer {
       Helper.clearDirectory("./public/tmp");
     }
 
-    fs.readFile("./templates/linkTester.html", (err: any, buf: any) => {
-      fs.writeFile(
-        path,
-        mustache.render(buf.toString(), {
-          manifest: manifest,
-          mainUrl: mainUrl.origin,
-          date: now.toLocaleString(),
-          testedUrls: this.outputLinks,
-        }),
-        (err: any) => {
-          if (err) throw err;
-          if (exportForProduction) {
-          } else {
-            open(fileName, {
-              app: {
-                name: "google chrome",
-                arguments: ["--allow-file-access-from-files"],
-              },
-            });
+    const template = fs.readFileSync("./templates/linkTester.html", "utf8");
+    body = mustache.render(template, {
+      manifest: manifest,
+      mainUrl: mainUrl.origin,
+      date: now.toLocaleString(),
+      local: !exportForProduction,
+      testedUrls: this.outputLinks,
+    });
+
+    if (!snippet) {
+      fs.writeFile(path, body, (err: any) => {
+        if (err) throw err;
+        if (exportForProduction) {
+        } else {
+          open(path, {
+            app: {
+              name: "google chrome",
+              arguments: ["--allow-file-access-from-files"],
+            },
+          });
+          if (!exportForProduction) {
+            const refreshServer = new RefreshServer();
+            refreshServer.listenForLinksChanges();
           }
         }
-      );
-    });
-    return fileName;
+      });
+    }
+
+    if (snippet) {
+      return body;
+    } else {
+      return fileName;
+    }
   }
 }
