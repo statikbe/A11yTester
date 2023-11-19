@@ -20,7 +20,13 @@ export class ProductionFlow {
       this.runData = JSON.parse(
         fs.readFileSync("./data/production.json", "utf8")
       );
-      this.testLog = JSON.parse(fs.readFileSync("./data/log.json", "utf8"));
+      try {
+        this.testLog = JSON.parse(fs.readFileSync("./data/log.json", "utf8"));
+      } catch (error) {
+        this.testLog = {
+          executions: [],
+        };
+      }
       this.startFlow();
     } catch (error) {
       console.log(error);
@@ -29,22 +35,33 @@ export class ProductionFlow {
 
   private startFlow() {
     this.runData.tests = this.runData.tests.filter((test) => {
-      const lastExecution = this.testLog.executions.filter(
-        (execution) => execution.projectCode === test.projectCode
-      );
-      if (lastExecution.length > 0) {
-        const lastExecutionDate = new Date(lastExecution[0].created);
-        const nextExecutionDate = new Date(
-          lastExecutionDate.getTime() + test.frequency * 86400000
+      if (this.testLog) {
+        const lastExecution = this.testLog.executions.filter(
+          (execution) => execution.projectCode === test.projectCode
         );
-        if (nextExecutionDate.getTime() < new Date().getTime()) {
+        if (lastExecution.length > 0) {
+          const lastExecutionDate = new Date(lastExecution[0].created);
+          const nextExecutionDate = new Date(
+            lastExecutionDate.getTime() + test.frequency * 86400000
+          );
+          if (nextExecutionDate.getTime() < new Date().getTime()) {
+            return true;
+          } else {
+            console.log(
+              `Skipping ${test.projectCode} - ${lastExecution[0].date} - ${
+                test.frequency
+              } days - next execution on ${nextExecutionDate.toLocaleDateString(
+                "nl-BE"
+              )}`
+            );
+          }
+        } else {
           return true;
         }
+        return false;
       } else {
         return true;
       }
-      console.log(`Skipping ${test.projectCode} - ${lastExecution[0].date}`);
-      return false;
     });
 
     this.runTests();

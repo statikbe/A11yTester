@@ -7,7 +7,8 @@
     "build-cli": "vite build --config vite.config.cli.js",
     "dev": "vite",
     "build": "vite build",
-    "cli": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && node cli.js"
+    "cli": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && node cli.js",
+    "prod": "node cli.js"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
