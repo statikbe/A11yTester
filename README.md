@@ -14,3 +14,27 @@ Tool to test websites for A11y issues, HTML errors and broken links.
     - Make this beautiful and interactive.
     - Give the option to ignore certain errors from further reporting.
   - Post to a slack channel if errors are encountered (https://dev.to/hrishikeshps/send-slack-notifications-via-nodejs-3ddn)
+
+```
+{
+  "tests": [
+    {
+      "sitemap": "",
+      "url": "https://www.statik.be",
+      "projectCode": "INTCRA",
+      "slackChannel": "",
+      "tests": ["html"],
+      "frequency": 7
+    },
+    {
+      "sitemap": "",
+      "url": "https://www.oka.be/nl",
+      "projectCode": "OKAWEB",
+      "slackChannel": "",
+      "tests": ["a11y", "html", "links"],
+      "frequency": 30
+    }
+  ]
+}
+
+```

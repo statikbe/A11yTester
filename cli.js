@@ -1,6 +1,5 @@
-import prompts from "prompts";
+import "prompts";
 import * as fs from "fs";
-import { HtmlValidate } from "html-validate/node";
 import colors from "colors";
 import * as cheerio from "cheerio";
 import path from "path";
@@ -12,6 +11,7 @@ import * as pa11y from "pa11y";
 import * as uniqueSelector from "cheerio-get-css-selector";
 import * as cliProgress from "cli-progress";
 import dns from "node:dns";
+import { HtmlValidate } from "html-validate/node";
 const _Helper = class _Helper2 {
   constructor() {
   }
@@ -190,6 +190,11 @@ class A11yTester {
           numberOfUrls: this.totalUrls,
           numberOfUrlsWithErrors: this.totalErrorUrls
         };
+        if (this.exportForProduction) {
+          testResult.errorData = JSON.parse(
+            this.output.render("json", this.exportForProduction)
+          );
+        }
         this.testResolve(testResult);
       }
     });
@@ -280,6 +285,11 @@ class LinkTester {
           numberOfUrls: this.totalUrls,
           numberOfUrlsWithErrors: this.totalErrorUrls
         };
+        if (this.exportForProduction) {
+          testResult.errorData = JSON.parse(
+            this.output.render("json", this.exportForProduction)
+          );
+        }
         this.testResolve(testResult);
       }
     });
@@ -597,7 +607,7 @@ class HTMLRenderer {
               arguments: ["--allow-file-access-from-files"]
             }
           });
-          if (!exportForProduction) {
+          if (!exportForProduction && "false") {
             const refreshServer = new RefreshServer();
             refreshServer.listenForHtmlChanges();
           }
@@ -690,7 +700,7 @@ class A11yRenderer {
               arguments: ["--allow-file-access-from-files"]
             }
           });
-          if (!exportForProduction) {
+          if (!exportForProduction && "false") {
             const refreshServer = new RefreshServer();
             refreshServer.listenForA11yChanges();
           }
@@ -783,7 +793,7 @@ class LinksRenderer {
               arguments: ["--allow-file-access-from-files"]
             }
           });
-          if (!exportForProduction) {
+          if (!exportForProduction && "false") {
             const refreshServer = new RefreshServer();
             refreshServer.listenForLinksChanges();
           }
@@ -1067,6 +1077,11 @@ class HTMLTester {
         numberOfUrls: this.totalUrls,
         numberOfUrlsWithErrors: this.totalErrorUrls
       };
+      if (this.exportForProduction) {
+        testResult.errorData = JSON.parse(
+          this.output.render("json", this.exportForProduction)
+        );
+      }
       this.testResolve(testResult);
     }
     if (this.external && this.urls.length > 0) {
@@ -1077,246 +1092,197 @@ class HTMLTester {
   }
 }
 dns.setDefaultResultOrder("ipv4first");
-class LocalFlow {
-  constructor(output = "cli", verbose = true) {
-    this.output = output;
-    this.verbose = verbose;
-    let runData = null;
-    fs.readFile("./data/session.json", (err, buf) => {
-      if (err) {
-        runData = null;
-      }
-      try {
-        runData = JSON.parse(buf.toString());
-      } catch (error) {
-        runData = null;
-      }
-      this.startFlow(runData);
-    });
+class Logger {
+  constructor() {
   }
-  startFlow(runData) {
-    (async () => {
-      if (this.output === "cli-choose") {
-        const renderChoice = await prompts({
-          type: "select",
-          name: "value",
-          message: "Where should the errors be exported to?",
-          choices: [
-            { title: "CLI", value: "cli" },
-            { title: "HTML", value: "html" }
-          ],
-          initial: 0
-        });
-        this.output = renderChoice.value;
+  static GetNewErrors(type, output) {
+    if (fs.existsSync(`./data/logs/${type}-${output[0].id}.json`)) {
+      try {
+        const previousData = JSON.parse(
+          fs.readFileSync(`./data/logs/${type}-${output[0].id}.json`, "utf8")
+        );
+        const newErrors = output[0].errorMessages.filter(
+          (error) => !previousData.errorMessages.some(
+            (previousError) => previousError.message === error.message && (previousError.selector === error.selector || error.ruleId == "form-dup-name")
+          )
+        );
+        console.log(newErrors);
+      } catch (error) {
+        console.log(error);
       }
-      let responseTool = { value: "" };
-      let type = { value: "" };
-      let sitemap = { value: "" };
-      let url = { value: "" };
-      let project = { value: "" };
-      let externalUrl = { value: "" };
-      const prompt = {
-        type: "select",
-        name: "value",
-        message: "What do you want to do?",
-        choices: [
-          { title: "Test A11y", value: "a11y" },
-          { title: "Test HTML", value: "html" },
-          { title: "Test Broken Links", value: "links" },
-          { title: "Nothing (Exit)", value: "exit" }
-        ],
-        initial: 0
-      };
-      if (runData && prompt.choices && prompt.choices.length > 0) {
-        prompt.choices.unshift({
-          title: `Run last session again (${runData.responseTool}-test for ${runData.url})`,
-          value: "runAgain"
-        });
-      }
-      responseTool = await prompts(prompt);
-      if (responseTool.value != "runAgain" && responseTool.value != "exit") {
-        type = await prompts({
-          type: "select",
-          name: "value",
-          message: "What do you want to test?",
-          choices: [
-            { title: "Sitemap", value: "sitemap" },
-            { title: "URL", value: "url" }
-          ],
-          initial: 0
-        });
-        switch (type.value) {
-          case "sitemap":
-            sitemap = await prompts({
-              type: "select",
-              name: "value",
-              message: "Where is the sitemap?",
-              choices: [
-                { title: "Local project", value: "project" },
-                { title: "External URL", value: "externalUrl" }
-              ],
-              initial: 0
-            });
-            switch (sitemap.value) {
-              case "project":
-                project = await prompts({
-                  type: "text",
-                  name: "value",
-                  message: "What is the project code?"
-                });
-                break;
-              case "externalUrl":
-                externalUrl = await prompts({
-                  type: "text",
-                  name: "value",
-                  message: "What is the URL to the sitemap?"
-                });
-                break;
-            }
-            break;
-          case "url":
-            url = await prompts({
-              type: "text",
-              name: "value",
-              message: "What is the URL?"
-            });
-            break;
+    } else {
+      fs.writeFile(
+        `./data/logs/${type}-${output[0].id}.json`,
+        JSON.stringify(output[0]),
+        (err) => {
+          if (err)
+            throw err;
         }
-        runData = {
-          responseTool: responseTool.value,
-          type: type.value,
-          sitemap: sitemap.value,
-          url: url.value,
-          project: project.value,
-          externalUrl: externalUrl.value
+      );
+      return output;
+    }
+  }
+}
+class ProductionFlow {
+  constructor(verbose = false) {
+    this.runData = null;
+    this.testLog = null;
+    this.verbose = verbose;
+    console.log("Running production flow");
+    try {
+      this.runData = JSON.parse(
+        fs.readFileSync("./data/production.json", "utf8")
+      );
+      try {
+        this.testLog = JSON.parse(fs.readFileSync("./data/log.json", "utf8"));
+      } catch (error) {
+        this.testLog = {
+          executions: []
         };
-      } else {
-        if (responseTool.value != "exit") {
-          responseTool.value = runData.responseTool;
-        }
-        type.value = runData.type;
-        sitemap.value = runData.sitemap;
-        url.value = runData.url;
-        project.value = runData.project;
-        externalUrl.value = runData.externalUrl;
       }
-      if (responseTool.value != "exit") {
+      this.startFlow();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  startFlow() {
+    this.runData.tests = this.runData.tests.filter((test) => {
+      if (this.testLog) {
+        const lastExecution = this.testLog.executions.filter(
+          (execution) => execution.projectCode === test.projectCode
+        );
+        if (lastExecution.length > 0) {
+          const lastExecutionDate = new Date(lastExecution[0].created);
+          const nextExecutionDate = new Date(
+            lastExecutionDate.getTime() + test.frequency * 864e5
+          );
+          if (nextExecutionDate.getTime() < (/* @__PURE__ */ new Date()).getTime()) {
+            return true;
+          } else {
+            console.log(
+              `Skipping ${test.projectCode} - ${lastExecution[0].date} - ${test.frequency} days - next execution on ${nextExecutionDate.toLocaleDateString(
+                "nl-BE"
+              )}`
+            );
+          }
+        } else {
+          return true;
+        }
+        return false;
+      } else {
+        return true;
+      }
+    });
+    this.runTests();
+  }
+  runTests() {
+    if (this.runData.tests.length > 0) {
+      const test = this.runData.tests.shift();
+      console.log(`Running tests for ${test.projectCode}`);
+      this.runTest(test).then((result) => {
+        result.map((r) => {
+          r.numberOfUrlsWithoutErrors = r.numberOfUrls - r.numberOfUrlsWithErrors;
+          r.passed = r.numberOfUrlsWithErrors === 0;
+          return r;
+        });
+        const now = /* @__PURE__ */ new Date();
+        const date = `${now.toLocaleDateString("nl-BE", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        })} | ${now.toLocaleTimeString("nl-BE")}`;
+        const logItem = this.testLog.executions.find(
+          (e) => e.projectCode === test.projectCode
+        );
+        if (logItem) {
+          logItem.created = now.toISOString();
+          logItem.date = date;
+          logItem.results = result;
+        } else {
+          this.testLog.executions.push({
+            projectCode: test.projectCode,
+            created: now.toISOString(),
+            date,
+            results: result
+          });
+        }
+        this.runTests();
+      });
+    } else {
+      console.log("✅  All done");
+      const manifest = Helper.getFrontendManifest();
+      fs.readFile("./templates/index.html", (err, buf) => {
         fs.writeFile(
-          "./data/session.json",
-          JSON.stringify(runData),
-          function(err) {
-            if (err)
-              console.log(err);
+          "./public/index.html",
+          mustache.render(buf.toString(), {
+            manifest,
+            testedUrls: this.testLog.executions
+          }),
+          (err2) => {
+            if (err2)
+              throw err2;
           }
         );
+      });
+      fs.writeFile("./data/log.json", JSON.stringify(this.testLog), (err) => {
+        if (err)
+          throw err;
+      });
+    }
+  }
+  runTest(test) {
+    const testResults = [];
+    return new Promise((resolve, reject) => {
+      if (test.tests.length > 0) {
+        const testName = test.tests.shift();
+        console.log(`Running ${testName} test for ${test.projectCode}`);
+        switch (testName) {
+          case "html":
+            const htmlTester = new HTMLTester();
+            htmlTester.test(test.sitemap, test.url, true, "html", this.verbose, true).then((testResult) => {
+              testResult.type = "html";
+              Logger.GetNewErrors(
+                "html",
+                testResult.errorData
+              );
+              delete testResult.errorData;
+              testResults.push(testResult);
+              this.runTest(test).then((result) => {
+                resolve([...testResults, ...result]);
+              });
+            });
+            break;
+          case "a11y":
+            const a11yTester = new A11yTester();
+            a11yTester.test(test.sitemap, test.url, true, "html", this.verbose, true).then((testResult) => {
+              testResult.type = "a11y";
+              testResults.push(testResult);
+              this.runTest(test).then((result) => {
+                resolve([...testResults, ...result]);
+              });
+            });
+            break;
+          case "links":
+            const linkTester = new LinkTester();
+            linkTester.test(test.sitemap, test.url, true, "html", this.verbose, true).then((testResult) => {
+              testResult.type = "links";
+              testResults.push(testResult);
+              this.runTest(test).then((result) => {
+                resolve([...testResults, ...result]);
+              });
+            });
+            break;
+        }
+      } else {
+        resolve(testResults);
       }
-      if (responseTool.value === "html") {
-        const htmlTester = new HTMLTester();
-        if (type.value === "sitemap") {
-          if (sitemap.value === "project") {
-            await htmlTester.test(
-              `https://${project.value}.local.statik.be/sitemap.xml`,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
-            runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
-          } else {
-            await htmlTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
-            runData.url = externalUrl.value;
-          }
-        }
-        if (type.value === "url") {
-          await htmlTester.test(
-            null,
-            url.value,
-            true,
-            this.output,
-            this.verbose
-          );
-          runData.url = url.value;
-        }
-      }
-      if (responseTool.value === "a11y") {
-        const a11yTester = new A11yTester();
-        if (type.value === "sitemap") {
-          if (sitemap.value === "project") {
-            await a11yTester.test(
-              `https://${project.value}.local.statik.be/sitemap.xml`,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
-            runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
-          } else {
-            await a11yTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
-            runData.url = externalUrl.value;
-          }
-        }
-        if (type.value === "url") {
-          await a11yTester.test(
-            null,
-            url.value,
-            true,
-            this.output,
-            this.verbose
-          );
-          runData.url = url.value;
-        }
-      }
-      if (responseTool.value === "links") {
-        const linksTester = new LinkTester();
-        if (type.value === "sitemap") {
-          if (sitemap.value === "project") {
-            await linksTester.test(
-              `https://${project.value}.local.statik.be/sitemap.xml`,
-              "",
-              false,
-              this.output,
-              this.verbose
-            );
-            runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
-          } else {
-            await linksTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
-            runData.url = externalUrl.value;
-          }
-        }
-        if (type.value === "url") {
-          await linksTester.test(
-            null,
-            url.value,
-            true,
-            this.output,
-            this.verbose
-          );
-          runData.url = url.value;
-        }
-      }
-    })();
+    });
+  }
+  addToIndex(test, testResult) {
   }
 }
 {
   {
-    new LocalFlow("html", "true");
+    new ProductionFlow("true");
   }
 }

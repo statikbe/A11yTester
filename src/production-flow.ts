@@ -7,6 +7,7 @@ import mustache from "mustache";
 import { Helper } from "./helpers";
 import open from "open";
 import { log } from "console";
+import { Logger } from "./logger";
 
 export class ProductionFlow {
   private verbose: boolean;
@@ -78,6 +79,7 @@ export class ProductionFlow {
           r.passed = r.numberOfUrlsWithErrors === 0;
           return r;
         });
+
         const now = new Date();
         const date = `${now.toLocaleDateString("nl-BE", {
           year: "numeric",
@@ -104,7 +106,7 @@ export class ProductionFlow {
         this.runTests();
       });
     } else {
-      console.log("All done");
+      console.log("✅  All done");
       const manifest = Helper.getFrontendManifest();
       fs.readFile("./templates/index.html", (err: any, buf: any) => {
         fs.writeFile(
@@ -115,12 +117,12 @@ export class ProductionFlow {
           }),
           (err: any) => {
             if (err) throw err;
-            open("./public/index.html", {
-              app: {
-                name: "google chrome",
-                arguments: ["--allow-file-access-from-files"],
-              },
-            });
+            // open("./public/index.html", {
+            //   app: {
+            //     name: "google chrome",
+            //     arguments: ["--allow-file-access-from-files"],
+            //   },
+            // });
           }
         );
       });
@@ -145,6 +147,12 @@ export class ProductionFlow {
               .test(test.sitemap, test.url, true, "html", this.verbose, true)
               .then((testResult: TestResult) => {
                 testResult.type = "html";
+                const errors = Logger.GetNewErrors(
+                  "html",
+                  testResult.errorData
+                );
+                delete testResult.errorData;
+
                 testResults.push(testResult);
                 this.runTest(test).then((result: TestResult[]) => {
                   resolve([...testResults, ...result]);

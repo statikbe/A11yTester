@@ -5,7 +5,12 @@ import { HtmlValidate } from "html-validate/node";
 import colors from "colors";
 import { Helper } from "./helpers";
 import { Output } from "./output";
-import { HTMLErrorMessage, RenderType, TestResult } from "./types";
+import {
+  HTMLErrorMessage,
+  OutputTypeHTML,
+  RenderType,
+  TestResult,
+} from "./types";
 
 export class HTMLTester {
   private output: Output;
@@ -183,11 +188,17 @@ export class HTMLTester {
         this.outputType,
         this.exportForProduction
       );
+
       const testResult: TestResult = {
         filename: renderOutput,
         numberOfUrls: this.totalUrls,
         numberOfUrlsWithErrors: this.totalErrorUrls,
       };
+      if (this.exportForProduction) {
+        testResult.errorData = JSON.parse(
+          this.output.render("json", this.exportForProduction)
+        ) as OutputTypeHTML;
+      }
       this.testResolve(testResult);
     }
 

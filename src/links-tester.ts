@@ -7,7 +7,7 @@ import * as cheerio from "cheerio";
 import * as uniqueSelector from "cheerio-get-css-selector";
 import * as cliProgress from "cli-progress";
 import { Output } from "./output";
-import { RenderType, TestResult } from "./types";
+import { OutputTypeLink, RenderType, TestResult } from "./types";
 
 export class LinkTester {
   private output: Output;
@@ -120,6 +120,11 @@ export class LinkTester {
           numberOfUrls: this.totalUrls,
           numberOfUrlsWithErrors: this.totalErrorUrls,
         };
+        if (this.exportForProduction) {
+          testResult.errorData = JSON.parse(
+            this.output.render("json", this.exportForProduction)
+          ) as OutputTypeLink;
+        }
 
         this.testResolve(testResult);
       }

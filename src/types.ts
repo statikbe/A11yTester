@@ -82,4 +82,5 @@ export type TestResult = {
   numberOfUrlsWithoutErrors?: number;
   type?: string;
   passed?: boolean;
+  errorData?: OutputTypeHTML | OutputTypeLink | OutputTypeA11y;
 };

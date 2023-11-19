@@ -95,7 +95,7 @@ export class LinksRenderer {
               arguments: ["--allow-file-access-from-files"],
             },
           });
-          if (!exportForProduction) {
+          if (!exportForProduction && import.meta.env.VITE_RUN_SERVER) {
             const refreshServer = new RefreshServer();
             refreshServer.listenForLinksChanges();
           }

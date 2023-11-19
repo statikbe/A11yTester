@@ -6,7 +6,7 @@ import * as pa11y from "pa11y";
 import colors from "colors";
 import { Helper } from "./helpers";
 import { Output } from "./output";
-import { RenderType, TestResult } from "./types";
+import { OutputTypeA11y, RenderType, TestResult } from "./types";
 
 export class A11yTester {
   private external = false;
@@ -142,6 +142,11 @@ export class A11yTester {
             numberOfUrls: this.totalUrls,
             numberOfUrlsWithErrors: this.totalErrorUrls,
           };
+          if (this.exportForProduction) {
+            testResult.errorData = JSON.parse(
+              this.output.render("json", this.exportForProduction)
+            ) as OutputTypeA11y;
+          }
           this.testResolve(testResult);
         }
       });
