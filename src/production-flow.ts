@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { HTMLTester } from "./html-tester";
 import { A11yTester } from "./a11y-tester";
 import { LinkTester } from "./links-tester";
-import { RunData, TestLog, TestResult } from "./types";
+import { NewError, RunData, TestLog, TestResult } from "./types";
 import mustache from "mustache";
 import { Helper } from "./helpers";
 import open from "open";
@@ -13,6 +13,7 @@ export class ProductionFlow {
   private verbose: boolean;
   private runData: RunData = null;
   private testLog: TestLog = null;
+  private newErrors: NewError[] = [];
 
   constructor(verbose: boolean = false) {
     this.verbose = verbose;
@@ -72,6 +73,7 @@ export class ProductionFlow {
     if (this.runData.tests.length > 0) {
       const test = this.runData.tests.shift();
       console.log(`Running tests for ${test.projectCode}`);
+      this.newErrors = [];
       this.runTest(test).then((result: TestResult[]) => {
         result.map((r) => {
           r.numberOfUrlsWithoutErrors =
@@ -103,6 +105,11 @@ export class ProductionFlow {
             results: result,
           });
         }
+
+        if (this.newErrors.length > 0) {
+          Logger.reportNewErrors(this.newErrors, test.slackChannel);
+        }
+
         this.runTests();
       });
     } else {
@@ -134,7 +141,6 @@ export class ProductionFlow {
 
   private runTest(test) {
     const testResults: TestResult[] = [];
-
     return new Promise((resolve, reject) => {
       if (test.tests.length > 0) {
         const testName = test.tests.shift();
@@ -151,6 +157,9 @@ export class ProductionFlow {
                   "html",
                   testResult.errorData
                 );
+                if (errors && errors.length > 0) {
+                  this.newErrors.push({ type: "html", amount: errors.length });
+                }
                 delete testResult.errorData;
 
                 testResults.push(testResult);
@@ -165,6 +174,15 @@ export class ProductionFlow {
               .test(test.sitemap, test.url, true, "html", this.verbose, true)
               .then((testResult: TestResult) => {
                 testResult.type = "a11y";
+                const errors = Logger.GetNewErrors(
+                  "a11y",
+                  testResult.errorData
+                );
+                if (errors && errors.length > 0) {
+                  this.newErrors.push({ type: "a11y", amount: errors.length });
+                }
+                delete testResult.errorData;
+
                 testResults.push(testResult);
                 this.runTest(test).then((result: TestResult[]) => {
                   resolve([...testResults, ...result]);
@@ -177,6 +195,18 @@ export class ProductionFlow {
               .test(test.sitemap, test.url, true, "html", this.verbose, true)
               .then((testResult: TestResult) => {
                 testResult.type = "links";
+                const errors = Logger.GetNewErrors(
+                  "links",
+                  testResult.errorData
+                );
+                if (errors && errors.length > 0) {
+                  this.newErrors.push({
+                    type: "links",
+                    amount: errors.length,
+                  });
+                }
+                delete testResult.errorData;
+
                 testResults.push(testResult);
                 this.runTest(test).then((result: TestResult[]) => {
                   resolve([...testResults, ...result]);
@@ -189,6 +219,4 @@ export class ProductionFlow {
       }
     });
   }
-
-  private addToIndex(test, testResult) {}
 }

@@ -1101,12 +1101,39 @@ class Logger {
         const previousData = JSON.parse(
           fs.readFileSync(`./data/logs/${type}-${output[0].id}.json`, "utf8")
         );
-        const newErrors = output[0].errorMessages.filter(
-          (error) => !previousData.errorMessages.some(
-            (previousError) => previousError.message === error.message && (previousError.selector === error.selector || error.ruleId == "form-dup-name")
-          )
+        let newErrors = [];
+        switch (type) {
+          case "html":
+            newErrors = output[0].errorMessages.filter(
+              (error) => !previousData.errorMessages.some(
+                (previousError) => previousError.message === error.message && (previousError.selector === error.selector || error.ruleId == "form-dup-name")
+              )
+            );
+            break;
+          case "a11y":
+            newErrors = output[0].errorMessages.filter(
+              (error) => !previousData.errorMessages.some(
+                (previousError) => previousError.message === error.message && previousError.selector === error.selector
+              )
+            );
+            break;
+          case "links":
+            newErrors = output[0].brokenLinks.filter(
+              (error) => !previousData.brokenLinks.some(
+                (previousError) => previousError.url === error.url && previousError.selector === error.selector
+              )
+            );
+            break;
+        }
+        fs.writeFile(
+          `./data/logs/${type}-${output[0].id}.json`,
+          JSON.stringify(output[0]),
+          (err) => {
+            if (err)
+              throw err;
+          }
         );
-        console.log(newErrors);
+        return newErrors;
       } catch (error) {
         console.log(error);
       }
@@ -1119,14 +1146,25 @@ class Logger {
             throw err;
         }
       );
-      return output;
+      switch (type) {
+        case "html":
+          return output[0].errorMessages;
+        case "a11y":
+          return output[0].errorMessages;
+        case "links":
+          return output[0].brokenLinks;
+      }
     }
+  }
+  static reportNewErrors(errors, slackChannel) {
+    console.log("New errors:", errors, slackChannel);
   }
 }
 class ProductionFlow {
   constructor(verbose = false) {
     this.runData = null;
     this.testLog = null;
+    this.newErrors = [];
     this.verbose = verbose;
     console.log("Running production flow");
     try {
@@ -1179,6 +1217,7 @@ class ProductionFlow {
     if (this.runData.tests.length > 0) {
       const test = this.runData.tests.shift();
       console.log(`Running tests for ${test.projectCode}`);
+      this.newErrors = [];
       this.runTest(test).then((result) => {
         result.map((r) => {
           r.numberOfUrlsWithoutErrors = r.numberOfUrls - r.numberOfUrlsWithErrors;
@@ -1205,6 +1244,9 @@ class ProductionFlow {
             date,
             results: result
           });
+        }
+        if (this.newErrors.length > 0) {
+          Logger.reportNewErrors(this.newErrors, test.slackChannel);
         }
         this.runTests();
       });
@@ -1241,10 +1283,13 @@ class ProductionFlow {
             const htmlTester = new HTMLTester();
             htmlTester.test(test.sitemap, test.url, true, "html", this.verbose, true).then((testResult) => {
               testResult.type = "html";
-              Logger.GetNewErrors(
+              const errors = Logger.GetNewErrors(
                 "html",
                 testResult.errorData
               );
+              if (errors && errors.length > 0) {
+                this.newErrors.push({ type: "html", amount: errors.length });
+              }
               delete testResult.errorData;
               testResults.push(testResult);
               this.runTest(test).then((result) => {
@@ -1256,6 +1301,14 @@ class ProductionFlow {
             const a11yTester = new A11yTester();
             a11yTester.test(test.sitemap, test.url, true, "html", this.verbose, true).then((testResult) => {
               testResult.type = "a11y";
+              const errors = Logger.GetNewErrors(
+                "a11y",
+                testResult.errorData
+              );
+              if (errors && errors.length > 0) {
+                this.newErrors.push({ type: "a11y", amount: errors.length });
+              }
+              delete testResult.errorData;
               testResults.push(testResult);
               this.runTest(test).then((result) => {
                 resolve([...testResults, ...result]);
@@ -1266,6 +1319,17 @@ class ProductionFlow {
             const linkTester = new LinkTester();
             linkTester.test(test.sitemap, test.url, true, "html", this.verbose, true).then((testResult) => {
               testResult.type = "links";
+              const errors = Logger.GetNewErrors(
+                "links",
+                testResult.errorData
+              );
+              if (errors && errors.length > 0) {
+                this.newErrors.push({
+                  type: "links",
+                  amount: errors.length
+                });
+              }
+              delete testResult.errorData;
               testResults.push(testResult);
               this.runTest(test).then((result) => {
                 resolve([...testResults, ...result]);
@@ -1277,8 +1341,6 @@ class ProductionFlow {
         resolve(testResults);
       }
     });
-  }
-  addToIndex(test, testResult) {
   }
 }
 {

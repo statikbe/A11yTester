@@ -84,3 +84,8 @@ export type TestResult = {
   passed?: boolean;
   errorData?: OutputTypeHTML | OutputTypeLink | OutputTypeA11y;
 };
+
+export type NewError = {
+  type: string;
+  amount: number;
+};
