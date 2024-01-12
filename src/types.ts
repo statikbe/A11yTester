@@ -47,6 +47,7 @@ export type OutputTypeA11y = {
   url: string;
   errorMessages: A11yErrorMessage[];
   numberOfErrors?: number;
+  level?: string;
   id?: string;
 };
 

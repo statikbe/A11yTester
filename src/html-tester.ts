@@ -42,6 +42,7 @@ export class HTMLTester {
         "long-title": "off",
         "no-raw-characters": "off",
         "attribute-boolean-style": "off",
+        "valid-id": ["error", { relaxed: true }],
       },
     });
   }
@@ -136,9 +137,9 @@ export class HTMLTester {
           .validateString(body)
           .then((result: any) => {
             if (result.valid) {
-              if (this.verbose) {
-                console.log(colors.green("0 errors"));
-              }
+              // if (this.verbose) {
+              //   console.log(colors.green("0 errors"));
+              // }
               this.RenderUrl(url, 0);
             } else {
               result.results[0].messages.forEach((message: any) => {

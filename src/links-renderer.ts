@@ -72,7 +72,9 @@ export class LinksRenderer {
     } else {
       fileName = `${now.getTime()}.html`;
       path = `./public/tmp/${fileName}`;
-      Helper.clearDirectory("./public/tmp");
+      if (!snippet) {
+        Helper.clearDirectory("./public/tmp");
+      }
     }
 
     const template = fs.readFileSync("./templates/linkTester.html", "utf8");

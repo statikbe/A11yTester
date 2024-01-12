@@ -48,21 +48,23 @@
             class="flex items-center justify-between flex-1 cursor-pointer"
             data-s-toggle-target="{{id}}"
           >
-            <h3 class="flex items-center m-0 text-2xl">
-              {{& url}}
-              <span class="ml-2 text-base text-red-600">
+            <h3 class="flex items-center m-0 text-2xl">{{& url}}</h3>
+            <div class="flex space-x-4">
+              {{#numberOfErrors}}
+              <span class="mx-2 text-base font-bold text-red-600">
                 ({{numberOfErrors}} errors)
               </span>
-              <span class="ml-2 text-base text-green-600">
+              {{/numberOfErrors}}
+              <span class="mx-2 text-base text-green-600">
                 ({{numberOfOKLinks}} valid)
               </span>
-            </h3>
-            <span class="toggle-show js-toggle-collapsed-text">
-              <span class="text-sm whitespace-nowrap">Show errors</span>
-            </span>
-            <span class="toggle-hide js-toggle-expanded-text">
-              <span class="text-sm whitespace-nowrap">Hide errors</span>
-            </span>
+              <span class="toggle-show js-toggle-collapsed-text">
+                <span class="text-sm whitespace-nowrap">Show errors</span>
+              </span>
+              <span class="toggle-hide js-toggle-expanded-text">
+                <span class="text-sm whitespace-nowrap">Hide errors</span>
+              </span>
+            </div>
           </div>
         </div>
         <div

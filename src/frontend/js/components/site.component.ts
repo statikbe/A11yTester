@@ -70,7 +70,11 @@ export class SiteComponent {
           responseElement.body.innerHTML = response;
           const oldElement = document.getElementById(element);
           const newElement = responseElement.getElementById(element);
-          oldElement.innerHTML = newElement.innerHTML;
+          if (newElement) {
+            oldElement.innerHTML = newElement.innerHTML;
+          } else {
+            oldElement.innerHTML = "No more errors found";
+          }
         },
         error: (response) => {
           button.classList.remove("testing");

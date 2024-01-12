@@ -65,7 +65,9 @@ export class HTMLRenderer {
     } else {
       fileName = `${now.getTime()}.html`;
       path = `./public/tmp/${fileName}`;
-      Helper.clearDirectory("./public/tmp");
+      if (!snippet) {
+        Helper.clearDirectory("./public/tmp");
+      }
     }
 
     const template = fs.readFileSync("./templates/htmlTester.html", "utf8");

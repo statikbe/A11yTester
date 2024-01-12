@@ -51,6 +51,7 @@ export class LocalFlow {
       }
 
       let responseTool: prompts.Answers<"value"> = { value: "" };
+      let level: prompts.Answers<"value"> = { value: "" };
       let type: prompts.Answers<"value"> = { value: "" };
       let sitemap: prompts.Answers<"value"> = { value: "" };
       let url: prompts.Answers<"value"> = { value: "" };
@@ -72,7 +73,13 @@ export class LocalFlow {
 
       if (runData && prompt.choices && prompt.choices.length > 0) {
         (prompt.choices as prompts.Choice[]).unshift({
-          title: `Run last session again (${runData.responseTool}-test for ${runData.url})`,
+          title: `Run last session again (${runData.responseTool}-test for ${
+            runData.url
+              ? runData.url
+              : runData.sitemap == "project"
+              ? runData.project
+              : runData.sitemap
+          })`,
           value: "runAgain",
         });
       }
@@ -80,6 +87,20 @@ export class LocalFlow {
       responseTool = await prompts(prompt);
 
       if (responseTool.value != "runAgain" && responseTool.value != "exit") {
+        if (responseTool.value == "a11y") {
+          level = await prompts({
+            type: "select",
+            name: "value",
+            message: "What level do you want to test?",
+            choices: [
+              { title: "WCAG 2.0 Level AAA", value: "WCAG2AAA" },
+              { title: "WCAG 2.0 Level AA", value: "WCAG2AA" },
+              { title: "WCAG 2.0 Level A", value: "WCAG2A" },
+            ],
+            initial: 0,
+          });
+        }
+
         type = await prompts({
           type: "select",
           name: "value",
@@ -137,6 +158,7 @@ export class LocalFlow {
           url: url.value,
           project: project.value,
           externalUrl: externalUrl.value,
+          level: level.value ?? "",
         };
       } else {
         if (responseTool.value != "exit") {
@@ -147,6 +169,7 @@ export class LocalFlow {
         url.value = runData.url;
         project.value = runData.project;
         externalUrl.value = runData.externalUrl;
+        level.value = runData.level;
       }
 
       if (responseTool.value != "exit") {
@@ -203,7 +226,9 @@ export class LocalFlow {
               "",
               true,
               this.output as RenderType,
-              this.verbose
+              this.verbose,
+              false,
+              level.value
             );
             runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
@@ -212,7 +237,9 @@ export class LocalFlow {
               "",
               true,
               this.output as RenderType,
-              this.verbose
+              this.verbose,
+              false,
+              level.value
             );
             runData.url = externalUrl.value;
           }
@@ -223,7 +250,9 @@ export class LocalFlow {
             url.value,
             true,
             this.output as RenderType,
-            this.verbose
+            this.verbose,
+            false,
+            level.value
           );
           runData.url = url.value;
         }

@@ -20,6 +20,7 @@ export class A11yTester {
   private exportForProduction = false;
   private testPromise: Promise<any> | null = null;
   private testResolve: any;
+  private level: string = "WCAG2AAA";
 
   constructor() {
     colors.enable();
@@ -32,12 +33,14 @@ export class A11yTester {
     external: boolean = false,
     output: RenderType = "cli",
     verbose: boolean = true,
-    exportForProduction = false
+    exportForProduction = false,
+    level: string = "WCAG2AAA"
   ) {
     this.outputType = output;
     this.verbose = verbose;
     this.external = external;
     this.exportForProduction = exportForProduction;
+    this.level = level;
 
     this.urls = [];
     if (url.length > 0) {
@@ -98,7 +101,7 @@ export class A11yTester {
     return pa11y
       .default(url, {
         runners: ["htmlcs"],
-        standard: "WCAG2AAA",
+        standard: this.level,
         userAgent:
           "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
       })
@@ -127,28 +130,37 @@ export class A11yTester {
           });
         });
 
-        if (this.external && this.urls.length > 0) {
-          setTimeout(() => {
-            this.testUrl(this.urls.pop() as string);
-          }, 100);
-        }
-        if (this.external && this.urls.length == 0) {
-          const renderOutput = this.output.render(
-            this.outputType,
-            this.exportForProduction
-          );
-          const testResult: TestResult = {
-            filename: renderOutput,
-            numberOfUrls: this.totalUrls,
-            numberOfUrlsWithErrors: this.totalErrorUrls,
-          };
-          if (this.exportForProduction) {
-            testResult.errorData = JSON.parse(
-              this.output.render("json", this.exportForProduction)
-            ) as OutputTypeA11y;
-          }
-          this.testResolve(testResult);
-        }
+        this.checkNext();
+      })
+      .catch((error: string) => {
+        console.log(error);
+        this.currentUrl++;
+        this.checkNext();
       });
+  }
+
+  private checkNext() {
+    if (this.external && this.urls.length > 0) {
+      setTimeout(() => {
+        this.testUrl(this.urls.pop() as string);
+      }, 100);
+    }
+    if (this.external && this.urls.length == 0) {
+      const renderOutput = this.output.render(
+        this.outputType,
+        this.exportForProduction
+      );
+      const testResult: TestResult = {
+        filename: renderOutput,
+        numberOfUrls: this.totalUrls,
+        numberOfUrlsWithErrors: this.totalErrorUrls,
+      };
+      if (this.exportForProduction) {
+        testResult.errorData = JSON.parse(
+          this.output.render("json", this.exportForProduction)
+        ) as OutputTypeA11y;
+      }
+      this.testResolve(testResult);
+    }
   }
 }
