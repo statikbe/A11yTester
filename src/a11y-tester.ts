@@ -73,11 +73,7 @@ export class A11yTester {
 
   private testUrls() {
     if (this.verbose) {
-      console.log(
-        colors.cyan.underline(
-          `Running validation on ${this.urls.length} URLS\n`
-        )
-      );
+      console.log(colors.cyan.underline(`Running validation on ${this.urls.length} URLS\n`));
     }
 
     this.output = new Output("a11yTester", new URL(this.urls[0]).origin);
@@ -102,16 +98,13 @@ export class A11yTester {
       .default(url, {
         runners: ["htmlcs"],
         standard: this.level,
-        userAgent:
-          "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
+        userAgent: "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
       })
       .then((results: any) => {
         this.currentUrl++;
         if (this.verbose) {
           process.stdout.write(colors.cyan(" > "));
-          process.stdout.write(
-            colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
-          );
+          process.stdout.write(colors.yellow(` ${this.currentUrl}/${this.totalUrls} `));
           process.stdout.write(url);
           process.stdout.write(" - ");
           if (results.issues.length == 0) {
@@ -146,19 +139,14 @@ export class A11yTester {
       }, 100);
     }
     if (this.external && this.urls.length == 0) {
-      const renderOutput = this.output.render(
-        this.outputType,
-        this.exportForProduction
-      );
+      const renderOutput = this.output.render(this.outputType, this.exportForProduction);
       const testResult: TestResult = {
         filename: renderOutput,
         numberOfUrls: this.totalUrls,
         numberOfUrlsWithErrors: this.totalErrorUrls,
       };
       if (this.exportForProduction) {
-        testResult.errorData = JSON.parse(
-          this.output.render("json", this.exportForProduction)
-        ) as OutputTypeA11y;
+        testResult.errorData = JSON.parse(this.output.render("json", this.exportForProduction)) as OutputTypeA11y;
       }
       this.testResolve(testResult);
     }

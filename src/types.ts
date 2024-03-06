@@ -1,8 +1,8 @@
 import { type } from "os";
 
 // Output Types
-export type RenderType = "cli" | "json" | "html" | "html-snippet";
-export type OutputType = "a11yTester" | "htmlTester" | "linkTester";
+export type RenderType = "cli" | "json" | "html" | "html-snippet" | "excel";
+export type OutputType = "a11yTester" | "htmlTester" | "linkTester" | "headingTester";
 
 export type HTMLErrorMessage = {
   message: string;
@@ -11,6 +11,7 @@ export type HTMLErrorMessage = {
   selector?: string;
   ruleId?: string;
   ruleUrl?: string;
+  elementText?: string;
 };
 
 export type OutputTypeHTML = {

@@ -2,6 +2,7 @@ import colors from "colors";
 import { HTMLRenderer } from "./html-renderer";
 import { A11yRenderer } from "./a11y-renderer";
 import { LinksRenderer } from "./links-renderer";
+import { HeadingRenderer } from "./heading-renderer";
 import {
   A11yErrorMessage,
   BrokenLink,
@@ -12,6 +13,7 @@ import {
   OutputTypeLink,
   RenderType,
 } from "./types";
+import { log } from "console";
 
 export class Output {
   private outputHTML: OutputTypeHTML[] = [];
@@ -25,10 +27,7 @@ export class Output {
     this.url = url;
   }
 
-  public add(
-    url: string,
-    errorMessage: HTMLErrorMessage | BrokenLink | A11yErrorMessage
-  ) {
+  public add(url: string, errorMessage: HTMLErrorMessage | BrokenLink | A11yErrorMessage) {
     switch (this.outputType) {
       case "a11yTester":
         this.addAlly(url, errorMessage as A11yErrorMessage);
@@ -38,6 +37,9 @@ export class Output {
         break;
       case "linkTester":
         this.addBrokenLink(url, errorMessage as BrokenLink);
+        break;
+      case "headingTester":
+        this.addHTML(url, errorMessage as HTMLErrorMessage);
         break;
     }
   }
@@ -50,6 +52,8 @@ export class Output {
         return this.renderHTMLOutput(type, exportForProduction);
       case "linkTester":
         return this.renderBrokenLinkOutput(type, exportForProduction);
+      case "headingTester":
+        return this.renderHeadingOutput(type, exportForProduction);
     }
     return "";
   }
@@ -99,11 +103,7 @@ export class Output {
       case "json":
         return JSON.stringify(this.outputA11y);
       case "html-snippet":
-        return a11yRenderer.renderA11yOutputHTML(
-          this.url,
-          exportForProduction,
-          true
-        );
+        return a11yRenderer.renderA11yOutputHTML(this.url, exportForProduction, true);
       case "html":
         return a11yRenderer.renderA11yOutputHTML(this.url, exportForProduction);
     }
@@ -119,21 +119,31 @@ export class Output {
       case "json":
         return JSON.stringify(this.outputHTML);
       case "html-snippet":
-        return htmlRenderer.renderHTMLOutputHTML(
-          this.url,
-          exportForProduction,
-          true
-        );
+        return htmlRenderer.renderHTMLOutputHTML(this.url, exportForProduction, true);
       case "html":
         return htmlRenderer.renderHTMLOutputHTML(this.url, exportForProduction);
     }
     return "";
   }
 
-  private renderBrokenLinkOutput(
-    type: RenderType,
-    exportForProduction: boolean
-  ) {
+  private renderHeadingOutput(type: RenderType, exportForProduction: boolean) {
+    const htmlRenderer = new HTMLRenderer(this.outputHTML);
+    const headingRenderer = new HeadingRenderer(this.outputHTML);
+    switch (type) {
+      case "cli":
+        htmlRenderer.renderHTMLOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputHTML);
+      case "excel":
+        return headingRenderer.renderHeadingOutputExcel(this.url);
+      case "html":
+        return htmlRenderer.renderHTMLOutputHTML(this.url, exportForProduction);
+    }
+    return "";
+  }
+
+  private renderBrokenLinkOutput(type: RenderType, exportForProduction: boolean) {
     const linksRenderer = new LinksRenderer(this.outputLinks);
     switch (type) {
       case "cli":
@@ -142,16 +152,9 @@ export class Output {
       case "json":
         return JSON.stringify(this.outputLinks);
       case "html-snippet":
-        return linksRenderer.renderBrokenLinkOutputHTML(
-          this.url,
-          exportForProduction,
-          true
-        );
+        return linksRenderer.renderBrokenLinkOutputHTML(this.url, exportForProduction, true);
       case "html":
-        return linksRenderer.renderBrokenLinkOutputHTML(
-          this.url,
-          exportForProduction
-        );
+        return linksRenderer.renderBrokenLinkOutputHTML(this.url, exportForProduction);
     }
     return "";
   }

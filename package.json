@@ -20,6 +20,7 @@
     "express": "^4.18.2",
     "html-validate": "^8.7.1",
     "mustache": "^4.2.0",
+    "node-excel-export": "^1.4.4",
     "open": "^9.1.0",
     "pa11y": "^6.2.3",
     "pa11y-runner-axe": "^2.0.1",

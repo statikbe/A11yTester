@@ -1,13 +1,12 @@
-#!/usr/bin/env node
-"use strict";
-
 import { HtmlValidate } from "html-validate/node";
 import colors from "colors";
 import { Helper } from "./helpers";
 import { Output } from "./output";
 import { HTMLErrorMessage, OutputTypeHTML, RenderType, TestResult } from "./types";
+import * as cheerio from "cheerio";
+import * as uniqueSelector from "cheerio-get-css-selector";
 
-export class HTMLTester {
+export class HeadingErrorExporter {
   private output: Output;
   private currentUrl = 1;
   private totalUrls = 0;
@@ -15,45 +14,29 @@ export class HTMLTester {
   private htmlvalidate: HtmlValidate;
   private external = false;
   private urls: string[] = [];
-  private outputType: RenderType = "cli";
   private verbose = true;
-  private exportForProduction = false;
   private testPromise: Promise<any> | null = null;
   private testResolve: any;
+  private exportType: RenderType = "cli";
 
   constructor() {
     colors.enable();
-    this.output = new Output("htmlTester", "");
+    this.output = new Output("headingTester", "");
     this.htmlvalidate = new HtmlValidate({
       elements: ["html5"],
-      extends: ["html-validate:recommended"],
+      extends: ["html-validate:document"],
       rules: {
-        "void-style": "off",
-        "no-trailing-whitespace": "off",
-        "no-inline-style": "off",
-        "wcag/h71": "off",
-        "wcag/h63": "off",
-        "script-type": "off",
-        "long-title": "off",
-        "no-raw-characters": "off",
-        "attribute-boolean-style": "off",
-        "valid-id": ["error", { relaxed: true }],
+        "input-missing-label": "off",
+        "missing-doctype": "off",
+        "no-missing-references": "off",
+        "require-sri": "off",
       },
     });
   }
 
-  public test(
-    sitemapUrl: string | null,
-    url = "",
-    external: boolean = false,
-    output: RenderType = "cli",
-    verbose: boolean = true,
-    exportForProduction = false
-  ) {
+  public test(sitemapUrl: string | null, url = "", external: boolean = false, exportType: RenderType = "cli") {
     this.external = external;
-    this.outputType = output;
-    this.verbose = verbose;
-    this.exportForProduction = exportForProduction;
+    this.exportType = exportType;
 
     this.urls = [];
     if (url.length > 0) {
@@ -91,7 +74,7 @@ export class HTMLTester {
         if (this.verbose) {
           console.log(colors.cyan.underline(`Running validation on ${this.urls.length} URLS`));
         }
-        this.output = new Output("htmlTester", new URL(this.urls[0]).origin);
+        this.output = new Output("headingTester", new URL(this.urls[0]).origin);
         this.totalUrls = this.urls.length;
         this.currentUrl = 0;
 
@@ -126,13 +109,17 @@ export class HTMLTester {
         this.htmlvalidate
           .validateString(body)
           .then((result: any) => {
+            const $ = cheerio.load(body);
+            uniqueSelector.init($);
+
             if (result.valid) {
-              // if (this.verbose) {
-              //   console.log(colors.green("0 errors"));
-              // }
               this.RenderUrl(url, 0);
             } else {
               result.results[0].messages.forEach((message: any) => {
+                if (message.selector) {
+                  const text = $(message.selector).text();
+                  message.elementText = text;
+                }
                 this.output.add(url, message);
               });
               this.RenderUrl(url, result.results[0].errorCount);
@@ -173,16 +160,13 @@ export class HTMLTester {
     }
 
     if (this.currentUrl == this.totalUrls) {
-      const renderOutput = this.output.render(this.outputType, this.exportForProduction);
+      const renderOutput = this.output.render(this.exportType, false);
 
       const testResult: TestResult = {
         filename: renderOutput,
         numberOfUrls: this.totalUrls,
         numberOfUrlsWithErrors: this.totalErrorUrls,
       };
-      if (this.exportForProduction) {
-        testResult.errorData = JSON.parse(this.output.render("json", this.exportForProduction)) as OutputTypeHTML;
-      }
       this.testResolve(testResult);
     }
 

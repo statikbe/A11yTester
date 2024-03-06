@@ -13,8 +13,7 @@ export class Helper {
       .then(() =>
         fetch(sitemapUrl, {
           headers: {
-            "User-Agent":
-              "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
+            "User-Agent": "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
           },
         })
       )
@@ -28,11 +27,7 @@ export class Helper {
             $("sitemap > loc")
               .toArray()
               .map((element: cheerio.Element) => {
-                return this.getUrlsFromSitemap(
-                  $(element).text(),
-                  sitemapExclude,
-                  urls
-                );
+                return this.getUrlsFromSitemap($(element).text(), sitemapExclude, urls);
               })
           ).then((configs) => {
             return configs.pop();
@@ -75,9 +70,7 @@ export class Helper {
   };
 
   public static getFrontendManifest() {
-    const manifest = JSON.parse(
-      fs.readFileSync("./public/frontend/manifest.json", "utf8")
-    );
+    const manifest = JSON.parse(fs.readFileSync("./public/frontend/manifest.json", "utf8"));
     return Object.keys(manifest).reduce((acc, key) => {
       const newKey = key.split("/").join("").replace(".", "");
       acc[newKey] = manifest[key];

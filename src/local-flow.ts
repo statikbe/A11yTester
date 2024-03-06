@@ -6,16 +6,14 @@ import { LinkTester } from "./links-tester";
 import { RenderType } from "./types";
 
 import dns from "node:dns";
+import { HeadingErrorExporter } from "./heading-error-export";
 dns.setDefaultResultOrder("ipv4first");
 
 export class LocalFlow {
   private output: RenderType | "cli-choose";
   private verbose: boolean;
 
-  constructor(
-    output: RenderType | "cli-choose" = "cli",
-    verbose: boolean = true
-  ) {
+  constructor(output: RenderType | "cli-choose" = "cli", verbose: boolean = true) {
     this.output = output;
     this.verbose = verbose;
 
@@ -52,6 +50,7 @@ export class LocalFlow {
 
       let responseTool: prompts.Answers<"value"> = { value: "" };
       let level: prompts.Answers<"value"> = { value: "" };
+      let exportType: prompts.Answers<"value"> = { value: "" };
       let type: prompts.Answers<"value"> = { value: "" };
       let sitemap: prompts.Answers<"value"> = { value: "" };
       let url: prompts.Answers<"value"> = { value: "" };
@@ -66,6 +65,7 @@ export class LocalFlow {
           { title: "Test A11y", value: "a11y" },
           { title: "Test HTML", value: "html" },
           { title: "Test Broken Links", value: "links" },
+          { title: "Export Heading Errors", value: "exportHeadings" },
           { title: "Nothing (Exit)", value: "exit" },
         ],
         initial: 0,
@@ -74,11 +74,7 @@ export class LocalFlow {
       if (runData && prompt.choices && prompt.choices.length > 0) {
         (prompt.choices as prompts.Choice[]).unshift({
           title: `Run last session again (${runData.responseTool}-test for ${
-            runData.url
-              ? runData.url
-              : runData.sitemap == "project"
-              ? runData.project
-              : runData.sitemap
+            runData.url ? runData.url : runData.sitemap == "project" ? runData.project : runData.sitemap
           })`,
           value: "runAgain",
         });
@@ -96,6 +92,20 @@ export class LocalFlow {
               { title: "WCAG 2.0 Level AAA", value: "WCAG2AAA" },
               { title: "WCAG 2.0 Level AA", value: "WCAG2AA" },
               { title: "WCAG 2.0 Level A", value: "WCAG2A" },
+            ],
+            initial: 0,
+          });
+        }
+
+        if (responseTool.value == "exportHeadings") {
+          exportType = await prompts({
+            type: "select",
+            name: "value",
+            message: "To what do you want to export?",
+            choices: [
+              { title: "Excel", value: "excel" },
+              { title: "HTML", value: "html" },
+              { title: "cli", value: "cli" },
             ],
             initial: 0,
           });
@@ -153,6 +163,7 @@ export class LocalFlow {
 
         runData = {
           responseTool: responseTool.value,
+          exportType: exportType.value,
           type: type.value,
           sitemap: sitemap.value,
           url: url.value,
@@ -164,6 +175,7 @@ export class LocalFlow {
         if (responseTool.value != "exit") {
           responseTool.value = runData.responseTool;
         }
+        exportType.value = runData.exportType;
         type.value = runData.type;
         sitemap.value = runData.sitemap;
         url.value = runData.url;
@@ -173,13 +185,9 @@ export class LocalFlow {
       }
 
       if (responseTool.value != "exit") {
-        fs.writeFile(
-          "./data/session.json",
-          JSON.stringify(runData),
-          function (err: any) {
-            if (err) console.log(err);
-          }
-        );
+        fs.writeFile("./data/session.json", JSON.stringify(runData), function (err: any) {
+          if (err) console.log(err);
+        });
       }
 
       if (responseTool.value === "html") {
@@ -195,24 +203,12 @@ export class LocalFlow {
             );
             runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await htmlTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output as RenderType,
-              this.verbose
-            );
+            await htmlTester.test(externalUrl.value, "", true, this.output as RenderType, this.verbose);
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await htmlTester.test(
-            null,
-            url.value,
-            true,
-            this.output as RenderType,
-            this.verbose
-          );
+          await htmlTester.test(null, url.value, true, this.output as RenderType, this.verbose);
           runData.url = url.value;
         }
       }
@@ -245,15 +241,7 @@ export class LocalFlow {
           }
         }
         if (type.value === "url") {
-          await a11yTester.test(
-            null,
-            url.value,
-            true,
-            this.output as RenderType,
-            this.verbose,
-            false,
-            level.value
-          );
+          await a11yTester.test(null, url.value, true, this.output as RenderType, this.verbose, false, level.value);
           runData.url = url.value;
         }
       }
@@ -271,24 +259,35 @@ export class LocalFlow {
             );
             runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await linksTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output as RenderType,
-              this.verbose
-            );
+            await linksTester.test(externalUrl.value, "", true, this.output as RenderType, this.verbose);
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await linksTester.test(
-            null,
-            url.value,
-            true,
-            this.output as RenderType,
-            this.verbose
-          );
+          await linksTester.test(null, url.value, true, this.output as RenderType, this.verbose);
+          runData.url = url.value;
+        }
+      }
+
+      if (responseTool.value === "exportHeadings") {
+        const headingExporter = new HeadingErrorExporter();
+
+        if (type.value === "sitemap") {
+          if (sitemap.value === "project") {
+            await headingExporter.test(
+              `https://${project.value}.local.statik.be/sitemap.xml`,
+              "",
+              true,
+              exportType.value
+            );
+            runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
+          } else {
+            await headingExporter.test(externalUrl.value, "", true, exportType.value);
+            runData.url = externalUrl.value;
+          }
+        }
+        if (type.value === "url") {
+          await headingExporter.test(null, url.value, true, exportType.value);
           runData.url = url.value;
         }
       }

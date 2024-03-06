@@ -11,14 +11,13 @@ import cors from "cors";
 import * as pa11y from "pa11y";
 import * as uniqueSelector from "cheerio-get-css-selector";
 import * as cliProgress from "cli-progress";
+import * as excel from "node-excel-export";
 import dns from "node:dns";
 const _Helper = class _Helper2 {
   constructor() {
   }
   static getFrontendManifest() {
-    const manifest = JSON.parse(
-      fs.readFileSync("./public/frontend/manifest.json", "utf8")
-    );
+    const manifest = JSON.parse(fs.readFileSync("./public/frontend/manifest.json", "utf8"));
     return Object.keys(manifest).reduce((acc, key) => {
       const newKey = key.split("/").join("").replace(".", "");
       acc[newKey] = manifest[key];
@@ -39,11 +38,7 @@ _Helper.getUrlsFromSitemap = (sitemapUrl, sitemapExclude, urls) => {
     if (isSitemapIndex) {
       return Promise.all(
         $("sitemap > loc").toArray().map((element) => {
-          return _Helper.getUrlsFromSitemap(
-            $(element).text(),
-            sitemapExclude,
-            urls
-          );
+          return _Helper.getUrlsFromSitemap($(element).text(), sitemapExclude, urls);
         })
       ).then((configs) => {
         return configs.pop();
@@ -127,12 +122,8 @@ class A11yTester {
   }
   testUrls() {
     if (this.verbose) {
-      console.log(
-        colors.cyan.underline(
-          `Running validation on ${this.urls.length} URLS
-`
-        )
-      );
+      console.log(colors.cyan.underline(`Running validation on ${this.urls.length} URLS
+`));
     }
     this.output = new Output("a11yTester", new URL(this.urls[0]).origin);
     this.totalUrls = this.urls.length;
@@ -158,9 +149,7 @@ class A11yTester {
       this.currentUrl++;
       if (this.verbose) {
         process.stdout.write(colors.cyan(" > "));
-        process.stdout.write(
-          colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
-        );
+        process.stdout.write(colors.yellow(` ${this.currentUrl}/${this.totalUrls} `));
         process.stdout.write(url);
         process.stdout.write(" - ");
         if (results.issues.length == 0) {
@@ -191,19 +180,14 @@ class A11yTester {
       }, 100);
     }
     if (this.external && this.urls.length == 0) {
-      const renderOutput = this.output.render(
-        this.outputType,
-        this.exportForProduction
-      );
+      const renderOutput = this.output.render(this.outputType, this.exportForProduction);
       const testResult = {
         filename: renderOutput,
         numberOfUrls: this.totalUrls,
         numberOfUrlsWithErrors: this.totalErrorUrls
       };
       if (this.exportForProduction) {
-        testResult.errorData = JSON.parse(
-          this.output.render("json", this.exportForProduction)
-        );
+        testResult.errorData = JSON.parse(this.output.render("json", this.exportForProduction));
       }
       this.testResolve(testResult);
     }
@@ -833,6 +817,69 @@ class LinksRenderer {
     }
   }
 }
+class HeadingRenderer {
+  constructor(outputHTML) {
+    this.outputHTML = [];
+    this.outputHTML = outputHTML;
+  }
+  renderHeadingOutputExcel(url) {
+    const styles = {
+      headerDark: {
+        fill: {
+          fgColor: {
+            rgb: "FFCCCCCC"
+          }
+        },
+        font: {
+          color: {
+            rgb: "FF000000"
+          },
+          sz: 14,
+          bold: true
+        }
+      }
+    };
+    const specification = {
+      url: {
+        displayName: "URL",
+        headerStyle: styles.headerDark,
+        width: 300
+      },
+      error: {
+        displayName: "Error",
+        headerStyle: styles.headerDark,
+        width: 200
+      },
+      headingText: {
+        displayName: "Heading Text",
+        headerStyle: styles.headerDark,
+        width: 200
+      }
+    };
+    const dataset = [];
+    this.outputHTML.forEach((outputType) => {
+      outputType.errorMessages.forEach((message) => {
+        const row = {
+          url: outputType.url,
+          error: message.message,
+          headingText: message.elementText
+        };
+        dataset.push(row);
+      });
+    });
+    const report = excel.buildExport([
+      {
+        name: "Report",
+        specification,
+        data: dataset
+      }
+    ]);
+    const fileName = `heading-test-${url.replace(/[^a-zA-Z0-9]/g, "")}.xlsx`;
+    const path2 = `./public/excel/${fileName}`;
+    fs.writeFileSync(path2, report);
+    return path2;
+  }
+}
 class Output {
   constructor(type, url) {
     this.outputHTML = [];
@@ -852,6 +899,9 @@ class Output {
       case "linkTester":
         this.addBrokenLink(url, errorMessage);
         break;
+      case "headingTester":
+        this.addHTML(url, errorMessage);
+        break;
     }
   }
   render(type, exportForProduction = false) {
@@ -862,6 +912,8 @@ class Output {
         return this.renderHTMLOutput(type, exportForProduction);
       case "linkTester":
         return this.renderBrokenLinkOutput(type, exportForProduction);
+      case "headingTester":
+        return this.renderHeadingOutput(type, exportForProduction);
     }
     return "";
   }
@@ -907,11 +959,7 @@ class Output {
       case "json":
         return JSON.stringify(this.outputA11y);
       case "html-snippet":
-        return a11yRenderer.renderA11yOutputHTML(
-          this.url,
-          exportForProduction,
-          true
-        );
+        return a11yRenderer.renderA11yOutputHTML(this.url, exportForProduction, true);
       case "html":
         return a11yRenderer.renderA11yOutputHTML(this.url, exportForProduction);
     }
@@ -926,11 +974,23 @@ class Output {
       case "json":
         return JSON.stringify(this.outputHTML);
       case "html-snippet":
-        return htmlRenderer.renderHTMLOutputHTML(
-          this.url,
-          exportForProduction,
-          true
-        );
+        return htmlRenderer.renderHTMLOutputHTML(this.url, exportForProduction, true);
+      case "html":
+        return htmlRenderer.renderHTMLOutputHTML(this.url, exportForProduction);
+    }
+    return "";
+  }
+  renderHeadingOutput(type, exportForProduction) {
+    const htmlRenderer = new HTMLRenderer(this.outputHTML);
+    const headingRenderer = new HeadingRenderer(this.outputHTML);
+    switch (type) {
+      case "cli":
+        htmlRenderer.renderHTMLOutputConsole();
+        break;
+      case "json":
+        return JSON.stringify(this.outputHTML);
+      case "excel":
+        return headingRenderer.renderHeadingOutputExcel(this.url);
       case "html":
         return htmlRenderer.renderHTMLOutputHTML(this.url, exportForProduction);
     }
@@ -945,16 +1005,9 @@ class Output {
       case "json":
         return JSON.stringify(this.outputLinks);
       case "html-snippet":
-        return linksRenderer.renderBrokenLinkOutputHTML(
-          this.url,
-          exportForProduction,
-          true
-        );
+        return linksRenderer.renderBrokenLinkOutputHTML(this.url, exportForProduction, true);
       case "html":
-        return linksRenderer.renderBrokenLinkOutputHTML(
-          this.url,
-          exportForProduction
-        );
+        return linksRenderer.renderBrokenLinkOutputHTML(this.url, exportForProduction);
     }
     return "";
   }
@@ -984,7 +1037,8 @@ class HTMLTester {
         "script-type": "off",
         "long-title": "off",
         "no-raw-characters": "off",
-        "attribute-boolean-style": "off"
+        "attribute-boolean-style": "off",
+        "valid-id": ["error", { relaxed: true }]
       }
     });
   }
@@ -1020,11 +1074,7 @@ class HTMLTester {
   testUrls() {
     Promise.resolve().then(() => {
       if (this.verbose) {
-        console.log(
-          colors.cyan.underline(
-            `Running validation on ${this.urls.length} URLS`
-          )
-        );
+        console.log(colors.cyan.underline(`Running validation on ${this.urls.length} URLS`));
       }
       this.output = new Output("htmlTester", new URL(this.urls[0]).origin);
       this.totalUrls = this.urls.length;
@@ -1075,9 +1125,7 @@ class HTMLTester {
     this.currentUrl++;
     if (this.verbose) {
       process.stdout.write(colors.cyan(" > "));
-      process.stdout.write(
-        colors.yellow(` ${this.currentUrl}/${this.totalUrls} `)
-      );
+      process.stdout.write(colors.yellow(` ${this.currentUrl}/${this.totalUrls} `));
       process.stdout.write(url);
       process.stdout.write(" - ");
       if (errors == 0) {
@@ -1091,20 +1139,154 @@ class HTMLTester {
       this.output.add(url, message);
     }
     if (this.currentUrl == this.totalUrls) {
-      const renderOutput = this.output.render(
-        this.outputType,
-        this.exportForProduction
-      );
+      const renderOutput = this.output.render(this.outputType, this.exportForProduction);
       const testResult = {
         filename: renderOutput,
         numberOfUrls: this.totalUrls,
         numberOfUrlsWithErrors: this.totalErrorUrls
       };
       if (this.exportForProduction) {
-        testResult.errorData = JSON.parse(
-          this.output.render("json", this.exportForProduction)
-        );
+        testResult.errorData = JSON.parse(this.output.render("json", this.exportForProduction));
       }
+      this.testResolve(testResult);
+    }
+    if (this.external && this.urls.length > 0) {
+      setTimeout(() => {
+        this.testUrl(this.urls.pop());
+      }, 100);
+    }
+  }
+}
+class HeadingErrorExporter {
+  constructor() {
+    this.currentUrl = 1;
+    this.totalUrls = 0;
+    this.totalErrorUrls = 0;
+    this.external = false;
+    this.urls = [];
+    this.verbose = true;
+    this.testPromise = null;
+    this.exportType = "cli";
+    colors.enable();
+    this.output = new Output("headingTester", "");
+    this.htmlvalidate = new HtmlValidate({
+      elements: ["html5"],
+      extends: ["html-validate:document"],
+      rules: {
+        "input-missing-label": "off",
+        "missing-doctype": "off",
+        "no-missing-references": "off",
+        "require-sri": "off"
+      }
+    });
+  }
+  test(sitemapUrl, url = "", external = false, exportType = "cli") {
+    this.external = external;
+    this.exportType = exportType;
+    this.urls = [];
+    if (url.length > 0) {
+      this.urls = url.split(",");
+    }
+    if (sitemapUrl) {
+      Promise.resolve().then(() => {
+        Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
+          if (urls) {
+            this.urls = urls;
+            this.testUrls();
+          }
+        });
+      }).catch((error) => {
+        console.error(error.message);
+        process.exit(1);
+      });
+    } else {
+      this.testUrls();
+    }
+    this.testPromise = new Promise((resolve, reject) => {
+      this.testResolve = resolve;
+    });
+    return this.testPromise;
+  }
+  testUrls() {
+    Promise.resolve().then(() => {
+      if (this.verbose) {
+        console.log(colors.cyan.underline(`Running validation on ${this.urls.length} URLS`));
+      }
+      this.output = new Output("headingTester", new URL(this.urls[0]).origin);
+      this.totalUrls = this.urls.length;
+      this.currentUrl = 0;
+      if (this.external && this.urls.length > 0) {
+        this.testUrl(this.urls.pop());
+      } else {
+        this.urls.forEach((url) => {
+          this.testUrl(url);
+        });
+      }
+    }).catch((error) => {
+      console.error(error.message);
+      process.exit(1);
+    });
+  }
+  testUrl(url) {
+    Promise.resolve().then(
+      () => fetch(url, {
+        signal: AbortSignal.timeout(1e4),
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)"
+        }
+      })
+    ).then((response) => response.text()).then((body) => {
+      this.htmlvalidate.validateString(body).then((result) => {
+        const $ = cheerio.load(body);
+        uniqueSelector.init($);
+        if (result.valid) {
+          this.RenderUrl(url, 0);
+        } else {
+          result.results[0].messages.forEach((message) => {
+            if (message.selector) {
+              const text = $(message.selector).text();
+              message.elementText = text;
+            }
+            this.output.add(url, message);
+          });
+          this.RenderUrl(url, result.results[0].errorCount);
+        }
+      }).catch((error) => {
+        this.RenderUrl(url, 1, {
+          message: error
+        });
+      });
+    }).catch((error) => {
+      console.log(error);
+      this.RenderUrl(url, 1, {
+        message: error
+      });
+    });
+  }
+  RenderUrl(url, errors, message) {
+    this.currentUrl++;
+    if (this.verbose) {
+      process.stdout.write(colors.cyan(" > "));
+      process.stdout.write(colors.yellow(` ${this.currentUrl}/${this.totalUrls} `));
+      process.stdout.write(url);
+      process.stdout.write(" - ");
+      if (errors == 0) {
+        console.log(colors.green("0 errors"));
+      } else {
+        console.log(colors.red(`${errors} errors`));
+        this.totalErrorUrls++;
+      }
+    }
+    if (message) {
+      this.output.add(url, message);
+    }
+    if (this.currentUrl == this.totalUrls) {
+      const renderOutput = this.output.render(this.exportType, false);
+      const testResult = {
+        filename: renderOutput,
+        numberOfUrls: this.totalUrls,
+        numberOfUrlsWithErrors: this.totalErrorUrls
+      };
       this.testResolve(testResult);
     }
     if (this.external && this.urls.length > 0) {
@@ -1149,6 +1331,7 @@ class LocalFlow {
       }
       let responseTool = { value: "" };
       let level = { value: "" };
+      let exportType = { value: "" };
       let type = { value: "" };
       let sitemap = { value: "" };
       let url = { value: "" };
@@ -1162,6 +1345,7 @@ class LocalFlow {
           { title: "Test A11y", value: "a11y" },
           { title: "Test HTML", value: "html" },
           { title: "Test Broken Links", value: "links" },
+          { title: "Export Heading Errors", value: "exportHeadings" },
           { title: "Nothing (Exit)", value: "exit" }
         ],
         initial: 0
@@ -1183,6 +1367,19 @@ class LocalFlow {
               { title: "WCAG 2.0 Level AAA", value: "WCAG2AAA" },
               { title: "WCAG 2.0 Level AA", value: "WCAG2AA" },
               { title: "WCAG 2.0 Level A", value: "WCAG2A" }
+            ],
+            initial: 0
+          });
+        }
+        if (responseTool.value == "exportHeadings") {
+          exportType = await prompts({
+            type: "select",
+            name: "value",
+            message: "To what do you want to export?",
+            choices: [
+              { title: "Excel", value: "excel" },
+              { title: "HTML", value: "html" },
+              { title: "cli", value: "cli" }
             ],
             initial: 0
           });
@@ -1236,6 +1433,7 @@ class LocalFlow {
         }
         runData = {
           responseTool: responseTool.value,
+          exportType: exportType.value,
           type: type.value,
           sitemap: sitemap.value,
           url: url.value,
@@ -1247,6 +1445,7 @@ class LocalFlow {
         if (responseTool.value != "exit") {
           responseTool.value = runData.responseTool;
         }
+        exportType.value = runData.exportType;
         type.value = runData.type;
         sitemap.value = runData.sitemap;
         url.value = runData.url;
@@ -1255,14 +1454,10 @@ class LocalFlow {
         level.value = runData.level;
       }
       if (responseTool.value != "exit") {
-        fs.writeFile(
-          "./data/session.json",
-          JSON.stringify(runData),
-          function(err) {
-            if (err)
-              console.log(err);
-          }
-        );
+        fs.writeFile("./data/session.json", JSON.stringify(runData), function(err) {
+          if (err)
+            console.log(err);
+        });
       }
       if (responseTool.value === "html") {
         const htmlTester = new HTMLTester();
@@ -1277,24 +1472,12 @@ class LocalFlow {
             );
             runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await htmlTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
+            await htmlTester.test(externalUrl.value, "", true, this.output, this.verbose);
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await htmlTester.test(
-            null,
-            url.value,
-            true,
-            this.output,
-            this.verbose
-          );
+          await htmlTester.test(null, url.value, true, this.output, this.verbose);
           runData.url = url.value;
         }
       }
@@ -1326,15 +1509,7 @@ class LocalFlow {
           }
         }
         if (type.value === "url") {
-          await a11yTester.test(
-            null,
-            url.value,
-            true,
-            this.output,
-            this.verbose,
-            false,
-            level.value
-          );
+          await a11yTester.test(null, url.value, true, this.output, this.verbose, false, level.value);
           runData.url = url.value;
         }
       }
@@ -1351,24 +1526,33 @@ class LocalFlow {
             );
             runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await linksTester.test(
-              externalUrl.value,
-              "",
-              true,
-              this.output,
-              this.verbose
-            );
+            await linksTester.test(externalUrl.value, "", true, this.output, this.verbose);
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await linksTester.test(
-            null,
-            url.value,
-            true,
-            this.output,
-            this.verbose
-          );
+          await linksTester.test(null, url.value, true, this.output, this.verbose);
+          runData.url = url.value;
+        }
+      }
+      if (responseTool.value === "exportHeadings") {
+        const headingExporter = new HeadingErrorExporter();
+        if (type.value === "sitemap") {
+          if (sitemap.value === "project") {
+            await headingExporter.test(
+              `https://${project.value}.local.statik.be/sitemap.xml`,
+              "",
+              true,
+              exportType.value
+            );
+            runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
+          } else {
+            await headingExporter.test(externalUrl.value, "", true, exportType.value);
+            runData.url = externalUrl.value;
+          }
+        }
+        if (type.value === "url") {
+          await headingExporter.test(null, url.value, true, exportType.value);
           runData.url = url.value;
         }
       }
