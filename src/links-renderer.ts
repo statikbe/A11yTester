@@ -22,13 +22,9 @@ export class LinksRenderer {
         outputType.brokenLinks
           .filter((bl) => bl.status != "200")
           .forEach((link: BrokenLink) => {
-            output += ` ${colors.red("•")} ${colors.red(`${link.status}`)} : ${
-              link.url
-            }\n`;
+            output += ` ${colors.red("•")} ${colors.red(`${link.status}`)} : ${link.url}\n`;
             output += `   ${colors.yellow(
-              link.linkText && link.linkText.length
-                ? link.linkText
-                : link.tag ?? ""
+              link.linkText && link.linkText.length ? link.linkText : link.tag ?? ""
             )} : \n   ${colors.yellow(link.selector ?? "")}\n\n`;
           });
       });
@@ -38,11 +34,7 @@ export class LinksRenderer {
     }
   }
 
-  public renderBrokenLinkOutputHTML(
-    url: string,
-    exportForProduction: boolean = false,
-    snippet: boolean = false
-  ) {
+  public renderBrokenLinkOutputHTML(url: string, exportForProduction: boolean = false, snippet: boolean = false) {
     const now = new Date();
     let fileName = "";
     let path = "";
@@ -50,24 +42,15 @@ export class LinksRenderer {
     const manifest = Helper.getFrontendManifest();
     const mainUrl = new URL(url);
     this.outputLinks.map((output) => {
-      output.numberOfErrors = output.brokenLinks.filter(
-        (bl) => bl.status != "200"
-      ).length;
-      output.numberOfOKLinks = output.brokenLinks.filter(
-        (bl) => bl.status == "200"
-      ).length;
+      output.numberOfErrors = output.brokenLinks.filter((bl) => bl.status != "200").length;
+      output.numberOfOKLinks = output.brokenLinks.filter((bl) => bl.status == "200").length;
       output.okLinks = output.brokenLinks.filter((bl) => bl.status == "200");
-      output.brokenLinks = output.brokenLinks.filter(
-        (bl) => bl.status != "200"
-      );
+      output.brokenLinks = output.brokenLinks.filter((bl) => bl.status != "200");
       output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
     });
 
     if (exportForProduction) {
-      fileName = `link-test-${mainUrl.origin.replace(
-        /[^a-zA-Z0-9]/g,
-        ""
-      )}.html`;
+      fileName = `link-test-${mainUrl.origin.replace(/[^a-zA-Z0-9]/g, "")}.html`;
       path = `./public/html/${fileName}`;
     } else {
       fileName = `${now.getTime()}.html`;
@@ -91,7 +74,7 @@ export class LinksRenderer {
         if (err) throw err;
         if (exportForProduction) {
         } else {
-          open(path, {
+          open(`http://localhost:3030/tmp/${fileName}`, {
             app: {
               name: "google chrome",
               arguments: ["--allow-file-access-from-files"],

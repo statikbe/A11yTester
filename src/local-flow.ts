@@ -16,6 +16,7 @@ export class LocalFlow {
   constructor(output: RenderType | "cli-choose" = "cli", verbose: boolean = true) {
     this.output = output;
     this.verbose = verbose;
+    console.clear();
 
     let runData = null;
     fs.readFile("./data/session.json", (err: any, buf: any) => {

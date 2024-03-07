@@ -33,11 +33,7 @@ export class A11yRenderer {
     }
   }
 
-  public renderA11yOutputHTML(
-    url: string,
-    exportForProduction: boolean = false,
-    snippet: boolean = false
-  ) {
+  public renderA11yOutputHTML(url: string, exportForProduction: boolean = false, snippet: boolean = false) {
     const now = new Date();
     let fileName = "";
     let path = "";
@@ -50,10 +46,7 @@ export class A11yRenderer {
     });
 
     if (exportForProduction) {
-      fileName = `a11y-test-${mainUrl.origin.replace(
-        /[^a-zA-Z0-9]/g,
-        ""
-      )}.html`;
+      fileName = `a11y-test-${mainUrl.origin.replace(/[^a-zA-Z0-9]/g, "")}.html`;
       path = `./public/html/${fileName}`;
     } else {
       fileName = `${now.getTime()}.html`;
@@ -78,7 +71,7 @@ export class A11yRenderer {
         if (err) throw err;
         if (exportForProduction) {
         } else {
-          open(path, {
+          open(`http://localhost:3030/tmp/${fileName}`, {
             app: {
               name: "google chrome",
               arguments: ["--allow-file-access-from-files"],

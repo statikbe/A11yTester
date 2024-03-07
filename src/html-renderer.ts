@@ -15,18 +15,14 @@ export class HTMLRenderer {
   public renderHTMLOutputConsole() {
     let output = "";
     this.outputHTML.forEach((outputType: OutputTypeHTML) => {
-      output += colors.underline.cyan(
-        `${outputType.url} - ${outputType.errorMessages.length} errors\n\n`
-      );
+      output += colors.underline.cyan(`${outputType.url} - ${outputType.errorMessages.length} errors\n\n`);
       outputType.errorMessages.forEach((message: HTMLErrorMessage) => {
         output += ` ${colors.red("•")} ${message.message}\n`;
         if (message.selector) {
           output += `   ${colors.yellow(message.selector)}\n`;
         }
         if (message.ruleId && message.line && message.column) {
-          output += `   ${colors.dim(message.ruleId)} - line: ${
-            message.line
-          } | column: ${message.column}\n`;
+          output += `   ${colors.dim(message.ruleId)} - line: ${message.line} | column: ${message.column}\n`;
         }
         if (message.ruleUrl) {
           output += `   ${colors.dim.underline.italic(message.ruleUrl)}\n`;
@@ -40,11 +36,7 @@ export class HTMLRenderer {
     }
   }
 
-  public renderHTMLOutputHTML(
-    url: string,
-    exportForProduction: boolean = false,
-    snippet: boolean = false
-  ) {
+  public renderHTMLOutputHTML(url: string, exportForProduction: boolean = false, snippet: boolean = false) {
     const now = new Date();
     const mainUrl = new URL(url);
     let fileName = "";
@@ -57,10 +49,7 @@ export class HTMLRenderer {
     });
 
     if (exportForProduction) {
-      fileName = `html-test-${mainUrl.origin.replace(
-        /[^a-zA-Z0-9]/g,
-        ""
-      )}.html`;
+      fileName = `html-test-${mainUrl.origin.replace(/[^a-zA-Z0-9]/g, "")}.html`;
       path = `./public/html/${fileName}`;
     } else {
       fileName = `${now.getTime()}.html`;
@@ -84,7 +73,7 @@ export class HTMLRenderer {
         if (err) throw err;
         if (exportForProduction) {
         } else {
-          open(path, {
+          open(`http://localhost:3030/tmp/${fileName}`, {
             app: {
               name: "google chrome",
               arguments: ["--allow-file-access-from-files"],

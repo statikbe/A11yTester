@@ -492,23 +492,14 @@ class RefreshServer {
     this.app.listen(3030, () => {
       console.log("Server running on port 3030");
     });
+    this.app.use(express.static("public"));
   }
   listenForA11yChanges() {
     this.app.get("/a11y-retest", cors(), (req, res, next) => {
       console.log("a11y-retest", req.query);
-      const session = JSON.parse(
-        fs.readFileSync("./data/session.json", "utf8")
-      );
+      const session = JSON.parse(fs.readFileSync("./data/session.json", "utf8"));
       const a11yTester = new A11yTester();
-      a11yTester.test(
-        null,
-        req.query.url,
-        true,
-        "html-snippet",
-        true,
-        false,
-        session.level ? session.level : "WCAG2AAA"
-      ).then((result) => {
+      a11yTester.test(null, req.query.url, true, "html-snippet", true, false, session.level ? session.level : "WCAG2AAA").then((result) => {
         res.json(result.filename);
       });
     });
@@ -540,11 +531,9 @@ class HTMLRenderer {
   renderHTMLOutputConsole() {
     let output = "";
     this.outputHTML.forEach((outputType) => {
-      output += colors.underline.cyan(
-        `${outputType.url} - ${outputType.errorMessages.length} errors
+      output += colors.underline.cyan(`${outputType.url} - ${outputType.errorMessages.length} errors
 
-`
-      );
+`);
       outputType.errorMessages.forEach((message) => {
         output += ` ${colors.red("•")} ${message.message}
 `;
@@ -580,10 +569,7 @@ class HTMLRenderer {
       output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
     });
     if (exportForProduction) {
-      fileName = `html-test-${mainUrl.origin.replace(
-        /[^a-zA-Z0-9]/g,
-        ""
-      )}.html`;
+      fileName = `html-test-${mainUrl.origin.replace(/[^a-zA-Z0-9]/g, "")}.html`;
       path2 = `./public/html/${fileName}`;
     } else {
       fileName = `${now.getTime()}.html`;
@@ -607,7 +593,7 @@ class HTMLRenderer {
         if (exportForProduction)
           ;
         else {
-          open(path2, {
+          open(`http://localhost:3030/tmp/${fileName}`, {
             app: {
               name: "google chrome",
               arguments: ["--allow-file-access-from-files"]
@@ -675,10 +661,7 @@ class A11yRenderer {
       output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
     });
     if (exportForProduction) {
-      fileName = `a11y-test-${mainUrl.origin.replace(
-        /[^a-zA-Z0-9]/g,
-        ""
-      )}.html`;
+      fileName = `a11y-test-${mainUrl.origin.replace(/[^a-zA-Z0-9]/g, "")}.html`;
       path2 = `./public/html/${fileName}`;
     } else {
       fileName = `${now.getTime()}.html`;
@@ -702,7 +685,7 @@ class A11yRenderer {
         if (exportForProduction)
           ;
         else {
-          open(path2, {
+          open(`http://localhost:3030/tmp/${fileName}`, {
             app: {
               name: "google chrome",
               arguments: ["--allow-file-access-from-files"]
@@ -757,23 +740,14 @@ class LinksRenderer {
     const manifest = Helper.getFrontendManifest();
     const mainUrl = new URL(url);
     this.outputLinks.map((output) => {
-      output.numberOfErrors = output.brokenLinks.filter(
-        (bl) => bl.status != "200"
-      ).length;
-      output.numberOfOKLinks = output.brokenLinks.filter(
-        (bl) => bl.status == "200"
-      ).length;
+      output.numberOfErrors = output.brokenLinks.filter((bl) => bl.status != "200").length;
+      output.numberOfOKLinks = output.brokenLinks.filter((bl) => bl.status == "200").length;
       output.okLinks = output.brokenLinks.filter((bl) => bl.status == "200");
-      output.brokenLinks = output.brokenLinks.filter(
-        (bl) => bl.status != "200"
-      );
+      output.brokenLinks = output.brokenLinks.filter((bl) => bl.status != "200");
       output.id = output.url.replace(/[^a-zA-Z0-9]/g, "");
     });
     if (exportForProduction) {
-      fileName = `link-test-${mainUrl.origin.replace(
-        /[^a-zA-Z0-9]/g,
-        ""
-      )}.html`;
+      fileName = `link-test-${mainUrl.origin.replace(/[^a-zA-Z0-9]/g, "")}.html`;
       path2 = `./public/html/${fileName}`;
     } else {
       fileName = `${now.getTime()}.html`;
@@ -797,7 +771,7 @@ class LinksRenderer {
         if (exportForProduction)
           ;
         else {
-          open(path2, {
+          open(`http://localhost:3030/tmp/${fileName}`, {
             app: {
               name: "google chrome",
               arguments: ["--allow-file-access-from-files"]
@@ -877,6 +851,12 @@ class HeadingRenderer {
     const fileName = `heading-test-${url.replace(/[^a-zA-Z0-9]/g, "")}.xlsx`;
     const path2 = `./public/excel/${fileName}`;
     fs.writeFileSync(path2, report);
+    open(path2, {
+      app: {
+        name: "google chrome",
+        arguments: ["--allow-file-access-from-files"]
+      }
+    });
     return path2;
   }
 }
@@ -1301,6 +1281,7 @@ class LocalFlow {
   constructor(output = "cli", verbose = true) {
     this.output = output;
     this.verbose = verbose;
+    console.clear();
     let runData = null;
     fs.readFile("./data/session.json", (err, buf) => {
       if (err) {

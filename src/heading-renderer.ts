@@ -1,6 +1,7 @@
 import * as excel from "node-excel-export";
 import * as fs from "fs";
 import { HTMLErrorMessage, OutputTypeHTML } from "./types";
+import open from "open";
 
 export class HeadingRenderer {
   private outputHTML: OutputTypeHTML[] = [];
@@ -69,6 +70,12 @@ export class HeadingRenderer {
     const path = `./public/excel/${fileName}`;
     fs.writeFileSync(path, report);
 
+    open(path, {
+      app: {
+        name: "google chrome",
+        arguments: ["--allow-file-access-from-files"],
+      },
+    });
     return path;
   }
 }
