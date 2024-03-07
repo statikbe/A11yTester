@@ -24,5 +24,3 @@ dist-ssr
 *.sln
 *.sw?
 
-public/*
-data/*
