@@ -1,0 +1,194 @@
+body {
+  @apply text-base antialiased sm:text-xl text-primary font-base;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply mb-4 font-bold;
+}
+
+h1 {
+  @apply text-3xl;
+}
+
+h2 {
+  @apply text-2xl;
+}
+
+h3 {
+  @apply text-xl;
+}
+
+h4 {
+  @apply text-lg;
+}
+
+@screen sm {
+  h1 {
+    @apply text-4xl;
+  }
+
+  h2 {
+    @apply text-3xl;
+  }
+
+  h3 {
+    @apply text-2xl;
+  }
+
+  h4 {
+    @apply text-xl;
+  }
+}
+@screen md {
+  h1 {
+    @apply text-6xl;
+  }
+
+  h2 {
+    @apply text-4xl;
+  }
+
+  h3 {
+    @apply text-3xl;
+  }
+
+  h4 {
+    @apply text-2xl;
+  }
+}
+
+p:not(:first-of-type) {
+  @apply my-8;
+}
+p:first-of-type {
+  @apply mb-4;
+}
+p:last-of-type {
+  @apply mb-0;
+}
+
+.redactor ul,
+ul.list-arrow {
+  @apply my-4 space-y-5;
+
+  > li {
+    @apply relative pl-4;
+
+    @mixin icon-before chevron-right;
+
+    &::before {
+      @apply absolute text-site-blue;
+      top: 3px;
+      left: -4px;
+    }
+  }
+}
+
+strong {
+  @apply font-semibold;
+}
+
+::selection {
+  @apply text-white bg-primary;
+}
+
+*:focus {
+  @apply outline-none ring ring-site-blue;
+}
+
+body:not(.user-is-tabbing) *:focus {
+  @apply outline-none ring-0;
+}
+
+.redactor {
+  a {
+    @apply underline text-site-blue;
+
+    &:hover {
+      @apply no-underline;
+    }
+  }
+
+  ol {
+    @apply p-0 my-4 ml-4;
+    list-style-type: decimal;
+
+    li {
+      @apply my-4;
+    }
+  }
+  ol li::marker {
+    @apply text-site-orange;
+  }
+
+  blockquote {
+    @apply pl-5 border-gray-500 border-l-3;
+  }
+
+  &.cta {
+    h2 {
+      @apply text-4xl md:text-6xl;
+    }
+    h3 {
+      @apply text-3xl md:text-4xl;
+    }
+  }
+  &--contrast {
+    a {
+      @apply text-site-yellow;
+    }
+  }
+  h2,
+  h3,
+  h4,
+  h5 {
+    @apply mt-10;
+  }
+}
+
+.lazyload,
+.lazyloading {
+  opacity: 0;
+}
+.lazyloaded {
+  opacity: 1;
+  transition: opacity 300ms;
+}
+
+html:not(.hide-animation) {
+  .glide.lazyload,
+  .glide.lazyloading {
+    transform: translate3d(100%, 0, 0);
+    opacity: 0;
+  }
+  .glide.lazyloaded {
+    animation-name: slideInRight;
+    animation-duration: 1s;
+    animation-timing-function: ease-in-out;
+    animation-delay: 0.5s;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translate3d(100%, 0, 0);
+    visibility: visible;
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  display: none;
+}

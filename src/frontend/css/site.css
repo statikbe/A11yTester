@@ -1,0 +1,15 @@
+@import "tailwindcss/base";
+
+@import "./base/mixins.css";
+@import "./base/icon.css";
+@import "./base/fonts.css";
+@import "./base/base.css";
+
+@import "tailwindcss/components";
+
+@import "./components/site.css";
+@import "./components/toggle.css";
+
+@import "tailwindcss/utilities";
+
+@config "./tailwind.config.js";

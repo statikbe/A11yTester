@@ -1,15 +1,44 @@
 {
+  "name": "a11ytester",
   "private": true,
-  "config": {},
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "start": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && node start.js"
+    "build-cli": "vite build --config vite.config.cli.js",
+    "dev": "vite",
+    "build": "vite build",
+    "cli": "export NODE_EXTRA_CA_CERTS=\"$(mkcert -CAROOT)/rootCA.pem\" && node cli.js",
+    "prod": "node cli.js"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.16",
     "cheerio": "^1.0.0-rc.12",
+    "cheerio-get-css-selector": "^2.0.0",
+    "cli-progress": "^3.12.0",
     "colors": "^1.4.0",
-    "dotenv-run-script": "^0.4.1",
-    "html-validate": "^8.4.0",
-    "pa11y-ci": "^3.0.1",
-    "prompts": "^2.4.2"
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "html-validate": "^8.7.1",
+    "mustache": "^4.2.0",
+    "node-excel-export": "^1.4.4",
+    "open": "^9.1.0",
+    "pa11y": "^6.2.3",
+    "pa11y-runner-axe": "^2.0.1",
+    "pa11y-runner-htmlcs": "^2.0.1",
+    "postcss": "^8.4.31",
+    "postcss-custom-properties": "^13.3.2",
+    "postcss-import": "^15.1.0",
+    "postcss-mixins": "^9.0.4",
+    "prompts": "^2.4.2",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.5",
+    "vite-plugin-node": "^3.1.0",
+    "vite-plugin-static-copy": "^0.17.0"
+  },
+  "dependencies": {
+    "@types/cli-progress": "^3.11.5",
+    "@types/mustache": "^4.2.5",
+    "@types/prompts": "^2.4.8"
   }
 }
