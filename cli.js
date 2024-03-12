@@ -65,11 +65,13 @@ _Helper.clearDirectory = (directory) => {
     fs.readdir(directory, (err, files) => {
       if (err)
         reject(err);
-      for (const file of files) {
-        fs.unlink(path.join(directory, file), (err2) => {
-          if (err2)
-            reject(err2);
-        });
+      if (files) {
+        for (const file of files) {
+          fs.unlink(path.join(directory, file), (err2) => {
+            if (err2)
+              reject(err2);
+          });
+        }
       }
       resolve();
     });
