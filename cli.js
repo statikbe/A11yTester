@@ -46,7 +46,8 @@ _Helper.getUrlsFromSitemap = (sitemapUrl, sitemapExclude, urls) => {
     }
     $("url > loc").toArray().forEach((element) => {
       let url = $(element).text();
-      if (sitemapExclude.length > 0 && url.match(sitemapExclude)) {
+      const extension = new RegExp(/\.[0-9a-z]+$/i);
+      if (sitemapExclude.length > 0 && url.match(sitemapExclude) || url.match(extension)) {
         return;
       }
       urls.push(url);
@@ -65,11 +66,13 @@ _Helper.clearDirectory = (directory) => {
     fs.readdir(directory, (err, files) => {
       if (err)
         reject(err);
-      for (const file of files) {
-        fs.unlink(path.join(directory, file), (err2) => {
-          if (err2)
-            reject(err2);
-        });
+      if (files) {
+        for (const file of files) {
+          fs.unlink(path.join(directory, file), (err2) => {
+            if (err2)
+              reject(err2);
+          });
+        }
       }
       resolve();
     });
