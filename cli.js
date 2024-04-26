@@ -46,7 +46,8 @@ _Helper.getUrlsFromSitemap = (sitemapUrl, sitemapExclude, urls) => {
     }
     $("url > loc").toArray().forEach((element) => {
       let url = $(element).text();
-      if (sitemapExclude.length > 0 && url.match(sitemapExclude)) {
+      const extension = new RegExp(/\.[0-9a-z]+$/i);
+      if (sitemapExclude.length > 0 && url.match(sitemapExclude) || url.match(extension)) {
         return;
       }
       urls.push(url);
