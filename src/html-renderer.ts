@@ -75,7 +75,7 @@ export class HTMLRenderer {
         } else {
           open(`http://localhost:3030/tmp/${fileName}`, {
             app: {
-              name: "google chrome",
+              name: import.meta.env.VITE_RUN_BROWSER,
               arguments: ["--allow-file-access-from-files"],
             },
           });

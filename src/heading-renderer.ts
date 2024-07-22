@@ -72,7 +72,7 @@ export class HeadingRenderer {
 
     open(path, {
       app: {
-        name: "google chrome",
+        name: import.meta.env.VITE_RUN_BROWSER,
         arguments: ["--allow-file-access-from-files"],
       },
     });
