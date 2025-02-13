@@ -7,8 +7,11 @@ export class Helper {
   public static getUrlsFromSitemap = (
     sitemapUrl: string,
     sitemapExclude: string,
-    urls: Array<string>
+    urls: Array<string>,
+    limitUrls: number = 0
   ): Promise<string[] | undefined> => {
+    const baseUrlCount: { [key: string]: number } = {};
+
     return Promise.resolve()
       .then(() =>
         fetch(sitemapUrl, {
@@ -27,7 +30,7 @@ export class Helper {
             $("sitemap > loc")
               .toArray()
               .map((element: cheerio.Element) => {
-                return this.getUrlsFromSitemap($(element).text(), sitemapExclude, urls);
+                return this.getUrlsFromSitemap($(element).text(), sitemapExclude, urls, limitUrls);
               })
           ).then((configs) => {
             return configs.pop();
@@ -42,6 +45,19 @@ export class Helper {
             if ((sitemapExclude.length > 0 && url.match(sitemapExclude)) || url.match(extension)) {
               return;
             }
+
+            const urlParts = url.split("/");
+            const baseUrl = urlParts.slice(0, -1).join("/");
+            if (limitUrls > 0 && urlParts.length > 4) {
+              if (!baseUrlCount[baseUrl]) {
+                baseUrlCount[baseUrl] = 0;
+              }
+              if (baseUrlCount[baseUrl] >= limitUrls) {
+                return;
+              }
+              baseUrlCount[baseUrl]++;
+            }
+
             urls.push(url);
           });
         return urls;

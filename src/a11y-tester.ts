@@ -18,6 +18,7 @@ export class A11yTester {
   private outputType: RenderType = "cli";
   private verbose = true;
   private exportForProduction = false;
+  private limitUrls = 0;
   private testPromise: Promise<any> | null = null;
   private testResolve: any;
   private level: string = "WCAG2AAA";
@@ -34,13 +35,15 @@ export class A11yTester {
     output: RenderType = "cli",
     verbose: boolean = true,
     exportForProduction = false,
-    level: string = "WCAG2AAA"
+    level: string = "WCAG2AAA",
+    limitUrls = 0
   ) {
     this.outputType = output;
     this.verbose = verbose;
     this.external = external;
     this.exportForProduction = exportForProduction;
     this.level = level;
+    this.limitUrls = limitUrls;
 
     this.urls = [];
     if (url.length > 0) {
@@ -50,7 +53,7 @@ export class A11yTester {
     if (sitemapUrl) {
       Promise.resolve()
         .then(() => {
-          Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
+          Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls, this.limitUrls).then((urls) => {
             if (urls) {
               this.testUrls();
             }

@@ -25,7 +25,8 @@ const _Helper = class _Helper2 {
     }, {});
   }
 };
-_Helper.getUrlsFromSitemap = (sitemapUrl, sitemapExclude, urls) => {
+_Helper.getUrlsFromSitemap = (sitemapUrl, sitemapExclude, urls, limitUrls = 0) => {
+  const baseUrlCount = {};
   return Promise.resolve().then(
     () => fetch(sitemapUrl, {
       headers: {
@@ -38,7 +39,7 @@ _Helper.getUrlsFromSitemap = (sitemapUrl, sitemapExclude, urls) => {
     if (isSitemapIndex) {
       return Promise.all(
         $("sitemap > loc").toArray().map((element) => {
-          return _Helper.getUrlsFromSitemap($(element).text(), sitemapExclude, urls);
+          return _Helper.getUrlsFromSitemap($(element).text(), sitemapExclude, urls, limitUrls);
         })
       ).then((configs) => {
         return configs.pop();
@@ -49,6 +50,17 @@ _Helper.getUrlsFromSitemap = (sitemapUrl, sitemapExclude, urls) => {
       const extension = new RegExp(/\.[0-9a-z]+$/i);
       if (sitemapExclude.length > 0 && url.match(sitemapExclude) || url.match(extension)) {
         return;
+      }
+      const urlParts = url.split("/");
+      const baseUrl = urlParts.slice(0, -1).join("/");
+      if (limitUrls > 0 && urlParts.length > 4) {
+        if (!baseUrlCount[baseUrl]) {
+          baseUrlCount[baseUrl] = 0;
+        }
+        if (baseUrlCount[baseUrl] >= limitUrls) {
+          return;
+        }
+        baseUrlCount[baseUrl]++;
       }
       urls.push(url);
     });
@@ -89,24 +101,26 @@ class A11yTester {
     this.outputType = "cli";
     this.verbose = true;
     this.exportForProduction = false;
+    this.limitUrls = 0;
     this.testPromise = null;
     this.level = "WCAG2AAA";
     colors.enable();
     this.output = new Output("a11yTester", "");
   }
-  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true, exportForProduction = false, level = "WCAG2AAA") {
+  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true, exportForProduction = false, level = "WCAG2AAA", limitUrls = 0) {
     this.outputType = output;
     this.verbose = verbose;
     this.external = external;
     this.exportForProduction = exportForProduction;
     this.level = level;
+    this.limitUrls = limitUrls;
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
     }
     if (sitemapUrl) {
       Promise.resolve().then(() => {
-        Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
+        Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls, this.limitUrls).then((urls) => {
           if (urls) {
             this.testUrls();
           }
@@ -244,12 +258,8 @@ class LinkTester {
     this.output = new Output("linkTester", new URL(this.urls[0]).origin);
     Promise.resolve().then(() => {
       if (this.verbose) {
-        console.log(
-          colors.cyan.underline(
-            `Running validation on ${this.urls.length} URLS
-`
-          )
-        );
+        console.log(colors.cyan.underline(`Running validation on ${this.urls.length} URLS
+`));
       }
       let uniqueLinks = [];
       const baseUrl = this.urls[0].split("/")[0] + "//" + this.urls[0].split("/")[2];
@@ -272,19 +282,14 @@ class LinkTester {
           this.testLinks(baseUrl, uniqueLinks);
         }
       } else {
-        const renderOutput = this.output.render(
-          this.outputType,
-          this.exportForProduction
-        );
+        const renderOutput = this.output.render(this.outputType, this.exportForProduction);
         const testResult = {
           filename: renderOutput,
           numberOfUrls: this.totalUrls,
           numberOfUrlsWithErrors: this.totalErrorUrls
         };
         if (this.exportForProduction) {
-          testResult.errorData = JSON.parse(
-            this.output.render("json", this.exportForProduction)
-          );
+          testResult.errorData = JSON.parse(this.output.render("json", this.exportForProduction));
         }
         this.testResolve(testResult);
       }
@@ -327,12 +332,7 @@ class LinkTester {
             else
               return $(element).attr("src", baseUrl + src).get(0);
           });
-          let elements = [
-            ...elementsAnchors,
-            ...elementsLinks,
-            ...elementsScripts,
-            ...elementsImages
-          ];
+          let elements = [...elementsAnchors, ...elementsLinks, ...elementsScripts, ...elementsImages];
           elements = elements.map((element) => {
             let link = "";
             if (!element)
@@ -372,10 +372,7 @@ class LinkTester {
                 clearOnComplete: false,
                 hideCursor: true,
                 format: (options, params, payload) => {
-                  const bar2 = options.barCompleteString.substr(
-                    0,
-                    Math.round(params.progress * options.barsize)
-                  );
+                  const bar2 = options.barCompleteString.substr(0, Math.round(params.progress * options.barsize));
                   const barIncomplete = options.barIncompleteString.substr(
                     Math.round(params.progress * options.barsize) + 1
                   );
@@ -793,6 +790,99 @@ class LinksRenderer {
       return fileName;
     }
   }
+  renderBrokenLinkOutputExcel(url) {
+    this.outputLinks.map((output) => {
+      output.numberOfErrors = output.brokenLinks.filter((bl) => bl.status != "200").length;
+      output.brokenLinks = output.brokenLinks.filter((bl) => bl.status != "200");
+    });
+    const styles = {
+      headerDark: {
+        fill: {
+          fgColor: {
+            rgb: "FFCCCCCC"
+          }
+        },
+        font: {
+          color: {
+            rgb: "FF000000"
+          },
+          sz: 14,
+          bold: true
+        },
+        alignment: {
+          vertical: "top"
+        }
+      },
+      cell: {
+        alignment: {
+          vertical: "top"
+        }
+      }
+    };
+    const specification = {
+      url: {
+        displayName: "URL",
+        headerStyle: styles.headerDark,
+        width: 300
+      },
+      status: {
+        displayName: "Status",
+        headerStyle: styles.headerDark,
+        width: 200
+      },
+      link: {
+        displayName: "Link",
+        headerStyle: styles.headerDark,
+        width: 200
+      },
+      linkText: {
+        displayName: "Link Text",
+        headerStyle: styles.headerDark,
+        width: 200
+      }
+    };
+    const dataset = [];
+    const merges = [];
+    let currentRow = 2;
+    this.outputLinks.forEach((outputType) => {
+      outputType.brokenLinks.forEach((output) => {
+        const row = {
+          url: {
+            value: outputType.url,
+            style: styles.cell
+          },
+          status: output.status,
+          link: output.url,
+          linkText: output.linkText
+        };
+        dataset.push(row);
+      });
+      const merge = {
+        start: { row: currentRow, column: 1 },
+        end: { row: currentRow + outputType.brokenLinks.length - 1, column: 1 }
+      };
+      merges.push(merge);
+      currentRow += outputType.brokenLinks.length;
+    });
+    const report = excel.buildExport([
+      {
+        name: "Report",
+        merges,
+        specification,
+        data: dataset
+      }
+    ]);
+    const fileName = `link-test-${url.replace(/[^a-zA-Z0-9]/g, "")}.xlsx`;
+    const path2 = `./public/excel/${fileName}`;
+    fs.writeFileSync(path2, report);
+    open(path2, {
+      app: {
+        name: "google chrome",
+        arguments: ["--allow-file-access-from-files"]
+      }
+    });
+    return path2;
+  }
 }
 class HeadingRenderer {
   constructor(outputHTML) {
@@ -991,6 +1081,8 @@ class Output {
         return linksRenderer.renderBrokenLinkOutputHTML(this.url, exportForProduction, true);
       case "html":
         return linksRenderer.renderBrokenLinkOutputHTML(this.url, exportForProduction);
+      case "excel":
+        return linksRenderer.renderBrokenLinkOutputExcel(this.url);
     }
     return "";
   }
@@ -1005,6 +1097,7 @@ class HTMLTester {
     this.outputType = "cli";
     this.verbose = true;
     this.exportForProduction = false;
+    this.limitUrls = 0;
     this.testPromise = null;
     colors.enable();
     this.output = new Output("htmlTester", "");
@@ -1025,18 +1118,19 @@ class HTMLTester {
       }
     });
   }
-  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true, exportForProduction = false) {
+  test(sitemapUrl, url = "", external = false, output = "cli", verbose = true, exportForProduction = false, limitUrls = 0) {
     this.external = external;
     this.outputType = output;
     this.verbose = verbose;
     this.exportForProduction = exportForProduction;
+    this.limitUrls = limitUrls;
     this.urls = [];
     if (url.length > 0) {
       this.urls = url.split(",");
     }
     if (sitemapUrl) {
       Promise.resolve().then(() => {
-        Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
+        Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls, this.limitUrls).then((urls) => {
           if (urls) {
             this.urls = urls;
             this.testUrls();
@@ -1318,6 +1412,7 @@ class LocalFlow {
       let exportType = { value: "" };
       let type = { value: "" };
       let sitemap = { value: "" };
+      let limitUrls = { value: 0 };
       let url = { value: "" };
       let project = { value: "" };
       let externalUrl = { value: "" };
@@ -1355,7 +1450,7 @@ class LocalFlow {
             initial: 0
           });
         }
-        if (responseTool.value == "exportHeadings") {
+        if (responseTool.value == "exportHeadings" || responseTool.value == "links") {
           exportType = await prompts({
             type: "select",
             name: "value",
@@ -1406,6 +1501,24 @@ class LocalFlow {
                 });
                 break;
             }
+            limitUrls = await prompts({
+              type: "select",
+              name: "value",
+              message: "Limit URL's?",
+              choices: [
+                { title: "No", value: 0 },
+                { title: "Yes", value: true }
+              ],
+              initial: 0
+            });
+            if (limitUrls.value) {
+              limitUrls = await prompts({
+                type: "number",
+                name: "value",
+                message: "How many URL's do you want to test per level?",
+                initial: 10
+              });
+            }
             break;
           case "url":
             url = await prompts({
@@ -1420,6 +1533,7 @@ class LocalFlow {
           exportType: exportType.value,
           type: type.value,
           sitemap: sitemap.value,
+          limitUrls: limitUrls.value,
           url: url.value,
           project: project.value,
           externalUrl: externalUrl.value,
@@ -1432,6 +1546,7 @@ class LocalFlow {
         exportType.value = runData.exportType;
         type.value = runData.type;
         sitemap.value = runData.sitemap;
+        limitUrls.value = runData.limitUrls;
         url.value = runData.url;
         project.value = runData.project;
         externalUrl.value = runData.externalUrl;
@@ -1452,16 +1567,26 @@ class LocalFlow {
               "",
               true,
               this.output,
-              this.verbose
+              this.verbose,
+              false,
+              limitUrls.value
             );
             runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await htmlTester.test(externalUrl.value, "", true, this.output, this.verbose);
+            await htmlTester.test(
+              externalUrl.value,
+              "",
+              true,
+              this.output,
+              this.verbose,
+              false,
+              limitUrls.value
+            );
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await htmlTester.test(null, url.value, true, this.output, this.verbose);
+          await htmlTester.test(null, url.value, true, this.output, this.verbose, false, limitUrls.value);
           runData.url = url.value;
         }
       }
@@ -1476,7 +1601,8 @@ class LocalFlow {
               this.output,
               this.verbose,
               false,
-              level.value
+              level.value,
+              limitUrls.value
             );
             runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
@@ -1487,17 +1613,30 @@ class LocalFlow {
               this.output,
               this.verbose,
               false,
-              level.value
+              level.value,
+              limitUrls.value
             );
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await a11yTester.test(null, url.value, true, this.output, this.verbose, false, level.value);
+          await a11yTester.test(
+            null,
+            url.value,
+            true,
+            this.output,
+            this.verbose,
+            false,
+            level.value,
+            limitUrls.value
+          );
           runData.url = url.value;
         }
       }
       if (responseTool.value === "links") {
+        if (exportType.value != "") {
+          this.output = exportType.value;
+        }
         const linksTester = new LinkTester();
         if (type.value === "sitemap") {
           if (sitemap.value === "project") {

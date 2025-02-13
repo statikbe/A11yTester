@@ -1,4 +1,5 @@
 import colors from "colors";
+import * as excel from "node-excel-export";
 import * as fs from "fs";
 import mustache from "mustache";
 import open from "open";
@@ -93,5 +94,106 @@ export class LinksRenderer {
     } else {
       return fileName;
     }
+  }
+
+  public renderBrokenLinkOutputExcel(url: string) {
+    this.outputLinks.map((output) => {
+      output.numberOfErrors = output.brokenLinks.filter((bl) => bl.status != "200").length;
+      output.brokenLinks = output.brokenLinks.filter((bl) => bl.status != "200");
+    });
+
+    const styles = {
+      headerDark: {
+        fill: {
+          fgColor: {
+            rgb: "FFCCCCCC",
+          },
+        },
+        font: {
+          color: {
+            rgb: "FF000000",
+          },
+          sz: 14,
+          bold: true,
+        },
+        alignment: {
+          vertical: "top",
+        },
+      },
+      cell: {
+        alignment: {
+          vertical: "top",
+        },
+      },
+    };
+
+    const specification = {
+      url: {
+        displayName: "URL",
+        headerStyle: styles.headerDark,
+        width: 300,
+      },
+      status: {
+        displayName: "Status",
+        headerStyle: styles.headerDark,
+        width: 200,
+      },
+      link: {
+        displayName: "Link",
+        headerStyle: styles.headerDark,
+        width: 200,
+      },
+      linkText: {
+        displayName: "Link Text",
+        headerStyle: styles.headerDark,
+        width: 200,
+      },
+    };
+
+    const dataset = [];
+    const merges = [];
+    let currentRow = 2;
+
+    this.outputLinks.forEach((outputType) => {
+      outputType.brokenLinks.forEach((output) => {
+        const row = {
+          url: {
+            value: outputType.url,
+            style: styles.cell,
+          },
+          status: output.status,
+          link: output.url,
+          linkText: output.linkText,
+        };
+        dataset.push(row);
+      });
+      const merge = {
+        start: { row: currentRow, column: 1 },
+        end: { row: currentRow + outputType.brokenLinks.length - 1, column: 1 },
+      };
+      merges.push(merge);
+      currentRow += outputType.brokenLinks.length;
+    });
+
+    const report = excel.buildExport([
+      {
+        name: "Report",
+        merges: merges,
+        specification: specification,
+        data: dataset,
+      },
+    ]);
+
+    const fileName = `link-test-${url.replace(/[^a-zA-Z0-9]/g, "")}.xlsx`;
+    const path = `./public/excel/${fileName}`;
+    fs.writeFileSync(path, report);
+
+    open(path, {
+      app: {
+        name: "google chrome",
+        arguments: ["--allow-file-access-from-files"],
+      },
+    });
+    return path;
   }
 }
