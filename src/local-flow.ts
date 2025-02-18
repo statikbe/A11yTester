@@ -54,6 +54,7 @@ export class LocalFlow {
       let exportType: prompts.Answers<"value"> = { value: "" };
       let type: prompts.Answers<"value"> = { value: "" };
       let sitemap: prompts.Answers<"value"> = { value: "" };
+      let limitUrls: prompts.Answers<"value"> = { value: 0 };
       let url: prompts.Answers<"value"> = { value: "" };
       let project: prompts.Answers<"value"> = { value: "" };
       let externalUrl: prompts.Answers<"value"> = { value: "" };
@@ -98,7 +99,7 @@ export class LocalFlow {
           });
         }
 
-        if (responseTool.value == "exportHeadings") {
+        if (responseTool.value == "exportHeadings" || responseTool.value == "links") {
           exportType = await prompts({
             type: "select",
             name: "value",
@@ -152,6 +153,26 @@ export class LocalFlow {
                 });
                 break;
             }
+
+            limitUrls = await prompts({
+              type: "select",
+              name: "value",
+              message: "Limit URL's?",
+              choices: [
+                { title: "No", value: 0 },
+                { title: "Yes", value: true },
+              ],
+              initial: 0,
+            });
+
+            if (limitUrls.value) {
+              limitUrls = await prompts({
+                type: "number",
+                name: "value",
+                message: "How many URL's do you want to test per level?",
+                initial: 10,
+              });
+            }
             break;
           case "url":
             url = await prompts({
@@ -167,6 +188,7 @@ export class LocalFlow {
           exportType: exportType.value,
           type: type.value,
           sitemap: sitemap.value,
+          limitUrls: limitUrls.value,
           url: url.value,
           project: project.value,
           externalUrl: externalUrl.value,
@@ -179,6 +201,7 @@ export class LocalFlow {
         exportType.value = runData.exportType;
         type.value = runData.type;
         sitemap.value = runData.sitemap;
+        limitUrls.value = runData.limitUrls;
         url.value = runData.url;
         project.value = runData.project;
         externalUrl.value = runData.externalUrl;
@@ -200,16 +223,26 @@ export class LocalFlow {
               "",
               true,
               this.output as RenderType,
-              this.verbose
+              this.verbose,
+              false,
+              limitUrls.value
             );
             runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
-            await htmlTester.test(externalUrl.value, "", true, this.output as RenderType, this.verbose);
+            await htmlTester.test(
+              externalUrl.value,
+              "",
+              true,
+              this.output as RenderType,
+              this.verbose,
+              false,
+              limitUrls.value
+            );
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await htmlTester.test(null, url.value, true, this.output as RenderType, this.verbose);
+          await htmlTester.test(null, url.value, true, this.output as RenderType, this.verbose, false, limitUrls.value);
           runData.url = url.value;
         }
       }
@@ -225,7 +258,8 @@ export class LocalFlow {
               this.output as RenderType,
               this.verbose,
               false,
-              level.value
+              level.value,
+              limitUrls.value
             );
             runData.url = `https://${project.value}.local.statik.be/sitemap.xml`;
           } else {
@@ -236,18 +270,31 @@ export class LocalFlow {
               this.output as RenderType,
               this.verbose,
               false,
-              level.value
+              level.value,
+              limitUrls.value
             );
             runData.url = externalUrl.value;
           }
         }
         if (type.value === "url") {
-          await a11yTester.test(null, url.value, true, this.output as RenderType, this.verbose, false, level.value);
+          await a11yTester.test(
+            null,
+            url.value,
+            true,
+            this.output as RenderType,
+            this.verbose,
+            false,
+            level.value,
+            limitUrls.value
+          );
           runData.url = url.value;
         }
       }
 
       if (responseTool.value === "links") {
+        if (exportType.value != "") {
+          this.output = exportType.value;
+        }
         const linksTester = new LinkTester();
         if (type.value === "sitemap") {
           if (sitemap.value === "project") {

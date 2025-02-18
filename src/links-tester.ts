@@ -77,16 +77,11 @@ export class LinkTester {
     Promise.resolve()
       .then(() => {
         if (this.verbose) {
-          console.log(
-            colors.cyan.underline(
-              `Running validation on ${this.urls.length} URLS\n`
-            )
-          );
+          console.log(colors.cyan.underline(`Running validation on ${this.urls.length} URLS\n`));
         }
 
         let uniqueLinks: string[] = [];
-        const baseUrl =
-          this.urls[0].split("/")[0] + "//" + this.urls[0].split("/")[2];
+        const baseUrl = this.urls[0].split("/")[0] + "//" + this.urls[0].split("/")[2];
 
         // Run the tests
         this.testLinks(baseUrl, uniqueLinks);
@@ -111,19 +106,14 @@ export class LinkTester {
           this.testLinks(baseUrl, uniqueLinks);
         }
       } else {
-        const renderOutput = this.output.render(
-          this.outputType,
-          this.exportForProduction
-        );
+        const renderOutput = this.output.render(this.outputType, this.exportForProduction);
         const testResult: TestResult = {
           filename: renderOutput,
           numberOfUrls: this.totalUrls,
           numberOfUrlsWithErrors: this.totalErrorUrls,
         };
         if (this.exportForProduction) {
-          testResult.errorData = JSON.parse(
-            this.output.render("json", this.exportForProduction)
-          ) as OutputTypeLink;
+          testResult.errorData = JSON.parse(this.output.render("json", this.exportForProduction)) as OutputTypeLink;
         }
 
         this.testResolve(testResult);
@@ -138,8 +128,7 @@ export class LinkTester {
         .then(() =>
           fetch(url, {
             headers: {
-              "User-Agent":
-                "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
+              "User-Agent": "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
             },
           })
         )
@@ -187,20 +176,13 @@ export class LinkTester {
                     .attr("src", baseUrl + src)
                     .get(0);
               });
-            let elements = [
-              ...elementsAnchors,
-              ...elementsLinks,
-              ...elementsScripts,
-              ...elementsImages,
-            ];
+            let elements = [...elementsAnchors, ...elementsLinks, ...elementsScripts, ...elementsImages];
 
             elements = elements.map((element) => {
               let link = "";
               if (!element) return element;
-              if (element.tagName == "a" || element.tagName == "link")
-                link = $(element).attr("href") ?? "";
-              else if (element.tagName == "script" || element.tagName == "img")
-                link = $(element).attr("src") ?? "";
+              if (element.tagName == "a" || element.tagName == "link") link = $(element).attr("href") ?? "";
+              else if (element.tagName == "script" || element.tagName == "img") link = $(element).attr("src") ?? "";
               if (element.tagName == "img" && link.startsWith("data")) {
                 const srcset = $(element).attr("srcset");
                 if (srcset) {
@@ -233,10 +215,7 @@ export class LinkTester {
                   hideCursor: true,
                   format: (options: any, params: any, payload: any) => {
                     // bar grows dynamically by current progress - no whitespaces are added
-                    const bar = options.barCompleteString.substr(
-                      0,
-                      Math.round(params.progress * options.barsize)
-                    );
+                    const bar = options.barCompleteString.substr(0, Math.round(params.progress * options.barsize));
                     const barIncomplete = options.barIncompleteString.substr(
                       Math.round(params.progress * options.barsize) + 1
                     );
@@ -282,8 +261,7 @@ export class LinkTester {
               fetch(dataUrl, {
                 signal: AbortSignal.timeout(10000),
                 headers: {
-                  "User-Agent":
-                    "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
+                  "User-Agent": "Mozilla/5.0 (compatible; StatikTesterBot/0.1; +http://www.statik.be/)",
                 },
               })
                 .then((response) => {

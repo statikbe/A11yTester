@@ -18,6 +18,7 @@ export class HTMLTester {
   private outputType: RenderType = "cli";
   private verbose = true;
   private exportForProduction = false;
+  private limitUrls = 0;
   private testPromise: Promise<any> | null = null;
   private testResolve: any;
 
@@ -48,12 +49,14 @@ export class HTMLTester {
     external: boolean = false,
     output: RenderType = "cli",
     verbose: boolean = true,
-    exportForProduction = false
+    exportForProduction = false,
+    limitUrls = 0
   ) {
     this.external = external;
     this.outputType = output;
     this.verbose = verbose;
     this.exportForProduction = exportForProduction;
+    this.limitUrls = limitUrls;
 
     this.urls = [];
     if (url.length > 0) {
@@ -63,7 +66,7 @@ export class HTMLTester {
     if (sitemapUrl) {
       Promise.resolve()
         .then(() => {
-          Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls).then((urls) => {
+          Helper.getUrlsFromSitemap(sitemapUrl, "", this.urls, this.limitUrls).then((urls) => {
             if (urls) {
               this.urls = urls;
               this.testUrls();

@@ -155,6 +155,8 @@ export class Output {
         return linksRenderer.renderBrokenLinkOutputHTML(this.url, exportForProduction, true);
       case "html":
         return linksRenderer.renderBrokenLinkOutputHTML(this.url, exportForProduction);
+      case "excel":
+        return linksRenderer.renderBrokenLinkOutputExcel(this.url);
     }
     return "";
   }
