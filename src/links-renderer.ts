@@ -8,11 +8,10 @@ import { BrokenLink, OutputTypeLink } from "./types";
 import { RefreshServer } from "./refresh-server";
 
 export class LinksRenderer {
-  private outputLinks: OutputTypeLink[] = [];
 
-  constructor(outputLinks) {
-    this.outputLinks = outputLinks;
-  }
+  constructor(
+      private readonly outputLinks: OutputTypeLink[] = []
+  ) {}
 
   public renderBrokenLinkOutputConsole() {
     let output = "";
@@ -77,7 +76,7 @@ export class LinksRenderer {
         } else {
           open(`http://localhost:3030/tmp/${fileName}`, {
             app: {
-              name: "google chrome",
+              name: import.meta.env.VITE_RUN_BROWSER,
               arguments: ["--allow-file-access-from-files"],
             },
           });

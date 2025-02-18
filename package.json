@@ -22,7 +22,7 @@
     "mustache": "^4.2.0",
     "node-excel-export": "^1.4.4",
     "open": "^9.1.0",
-    "pa11y": "^6.2.3",
+    "pa11y": "^8.0.0",
     "pa11y-runner-axe": "^2.0.1",
     "pa11y-runner-htmlcs": "^2.0.1",
     "postcss": "^8.4.31",
@@ -40,5 +40,6 @@
     "@types/cli-progress": "^3.11.5",
     "@types/mustache": "^4.2.5",
     "@types/prompts": "^2.4.8"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }
