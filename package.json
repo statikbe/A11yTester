@@ -1,7 +1,7 @@
 {
   "name": "a11ytester",
-  "private": true,
-  "version": "0.0.0",
+  "private": false,
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "build-cli": "vite build --config vite.config.cli.js",
