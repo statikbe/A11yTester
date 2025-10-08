@@ -1,12 +1,23 @@
 {
-  "name": "a11ytester",
-  "private": false,
+  "name": "@statikbe/A11yTester",
   "version": "0.0.1",
-  "description": "",
+  "description": "A11yTester - accessibility testing CLI/web tool",
   "type": "module",
-  "publishConfig": {
-    "registry": "http://npm.pkg.github.com/@statikbe"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/statikbe/A11yTester.git"
   },
+  "author": "statikbe",
+  "license": "MIT",
+  "main": "cli.js",
+  "bin": {
+    "a11ytester": "cli.js"
+  },
+  "files": [
+    "cli.js",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build-cli": "vite build --config vite.config.cli.js",
     "dev": "vite",
@@ -44,6 +55,5 @@
     "@types/cli-progress": "^3.11.5",
     "@types/mustache": "^4.2.5",
     "@types/prompts": "^2.4.8"
-  },
-  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
+  }
 }
