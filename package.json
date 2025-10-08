@@ -1,11 +1,11 @@
 {
-  "name": "@statikbe/A11yTester",
+  "name": "@statikbe/a11ytester",
   "version": "0.0.1",
   "description": "A11yTester - accessibility testing CLI/web tool",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/statikbe/A11yTester.git"
+    "url": "git+https://github.com/statikbe/A11yTester.git"
   },
   "author": "statikbe",
   "license": "MIT",
