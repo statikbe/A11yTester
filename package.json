@@ -2,7 +2,11 @@
   "name": "a11ytester",
   "private": false,
   "version": "0.0.1",
+  "description": "",
   "type": "module",
+  "publishConfig": {
+    "registry": "http://npm.pkg.github.com/@statikbe"
+  },
   "scripts": {
     "build-cli": "vite build --config vite.config.cli.js",
     "dev": "vite",
