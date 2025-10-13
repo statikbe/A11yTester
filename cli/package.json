@@ -1,7 +1,7 @@
 {
   "name": "StatikCraftBaseInstallCLI",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "cli.js",
   "author": "Statik.be",
   "license": "MIT",
