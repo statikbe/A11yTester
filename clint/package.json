@@ -1,5 +1,5 @@
 {
-  "name": "clint",
+  "name": "Clint",
   "private": true,
   "version": "0.0.2",
   "main": "cli.js",
@@ -24,6 +24,7 @@
     "mustache": "^4.2.0",
     "node-excel-export": "^1.4.4",
     "open": "^9.1.0",
+    "ora": "^9.0.0",
     "pa11y": "^9.0.1",
     "pa11y-runner-axe": "^2.0.1",
     "pa11y-runner-htmlcs": "^2.0.1",
