@@ -1,0 +1,91 @@
+{
+  "src/frontend/fonts/Jost-300-cyrillic4.woff2": {
+    "file": "Jost-300-cyrillic4-CePNtC7K.woff2",
+    "src": "src/frontend/fonts/Jost-300-cyrillic4.woff2"
+  },
+  "src/frontend/fonts/Jost-300-latin-ext5.woff2": {
+    "file": "Jost-300-latin-ext5-CL_xKVc1.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin-ext5.woff2"
+  },
+  "src/frontend/fonts/Jost-300-latin6.woff2": {
+    "file": "Jost-300-latin6-N-SldZJA.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin6.woff2"
+  },
+  "src/frontend/fonts/Jost-400-cyrillic1.woff2": {
+    "file": "Jost-400-cyrillic1-WzGby7b1.woff2",
+    "src": "src/frontend/fonts/Jost-400-cyrillic1.woff2"
+  },
+  "src/frontend/fonts/Jost-400-cyrillic7.woff2": {
+    "file": "Jost-300-cyrillic4-CePNtC7K.woff2",
+    "src": "src/frontend/fonts/Jost-300-cyrillic4.woff2"
+  },
+  "src/frontend/fonts/Jost-400-latin-ext2.woff2": {
+    "file": "Jost-400-latin-ext2-B1RRQLfu.woff2",
+    "src": "src/frontend/fonts/Jost-400-latin-ext2.woff2"
+  },
+  "src/frontend/fonts/Jost-400-latin-ext8.woff2": {
+    "file": "Jost-300-latin-ext5-CL_xKVc1.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin-ext5.woff2"
+  },
+  "src/frontend/fonts/Jost-400-latin3.woff2": {
+    "file": "Jost-400-latin3-D-p8pFMF.woff2",
+    "src": "src/frontend/fonts/Jost-400-latin3.woff2"
+  },
+  "src/frontend/fonts/Jost-400-latin9.woff2": {
+    "file": "Jost-300-latin6-N-SldZJA.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin6.woff2"
+  },
+  "src/frontend/fonts/Jost-500-cyrillic10.woff2": {
+    "file": "Jost-300-cyrillic4-CePNtC7K.woff2",
+    "src": "src/frontend/fonts/Jost-300-cyrillic4.woff2"
+  },
+  "src/frontend/fonts/Jost-500-latin-ext11.woff2": {
+    "file": "Jost-300-latin-ext5-CL_xKVc1.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin-ext5.woff2"
+  },
+  "src/frontend/fonts/Jost-500-latin12.woff2": {
+    "file": "Jost-300-latin6-N-SldZJA.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin6.woff2"
+  },
+  "src/frontend/fonts/Jost-600-cyrillic13.woff2": {
+    "file": "Jost-300-cyrillic4-CePNtC7K.woff2",
+    "src": "src/frontend/fonts/Jost-300-cyrillic4.woff2"
+  },
+  "src/frontend/fonts/Jost-600-latin-ext14.woff2": {
+    "file": "Jost-300-latin-ext5-CL_xKVc1.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin-ext5.woff2"
+  },
+  "src/frontend/fonts/Jost-600-latin15.woff2": {
+    "file": "Jost-300-latin6-N-SldZJA.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin6.woff2"
+  },
+  "src/frontend/fonts/Jost-900-cyrillic16.woff2": {
+    "file": "Jost-300-cyrillic4-CePNtC7K.woff2",
+    "src": "src/frontend/fonts/Jost-300-cyrillic4.woff2"
+  },
+  "src/frontend/fonts/Jost-900-latin-ext17.woff2": {
+    "file": "Jost-300-latin-ext5-CL_xKVc1.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin-ext5.woff2"
+  },
+  "src/frontend/fonts/Jost-900-latin18.woff2": {
+    "file": "Jost-300-latin6-N-SldZJA.woff2",
+    "src": "src/frontend/fonts/Jost-300-latin6.woff2"
+  },
+  "src/frontend/js/site.ts": {
+    "file": "site-DGQ3CtBh.js",
+    "name": "site",
+    "src": "src/frontend/js/site.ts",
+    "isEntry": true,
+    "css": [
+      "site-bz7FUime.css"
+    ],
+    "assets": [
+      "Jost-400-cyrillic1-WzGby7b1.woff2",
+      "Jost-400-latin-ext2-B1RRQLfu.woff2",
+      "Jost-400-latin3-D-p8pFMF.woff2",
+      "Jost-300-cyrillic4-CePNtC7K.woff2",
+      "Jost-300-latin-ext5-CL_xKVc1.woff2",
+      "Jost-300-latin6-N-SldZJA.woff2"
+    ]
+  }
+}
