@@ -1,8 +1,6 @@
 {
   "description": "This is a test update to verify the update mechanism.",
-  "fileChanges": {
-    "frontend": {
-      "add": ["icons/bold.svg"]
-    }
+  "frontend": {
+    "add": ["icons/bold.svg"]
   }
 }
