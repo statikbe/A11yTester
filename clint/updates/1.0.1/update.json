@@ -1,7 +1,7 @@
 {
   "description": "This is a test update to verify the update mechanism.",
   "frontend": {
-    "add": ["icons/star.svg"]
+    "modify": ["icons/star.svg"]
   },
   "root": {
     "modify": ["EXTRA.md", "README.md", "vite-favicon.config.site2.js", "templates/_knock-knock.twig"],
