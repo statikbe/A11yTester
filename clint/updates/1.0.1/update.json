@@ -4,9 +4,7 @@
     "add": ["icons/star.svg"]
   },
   "root": {
-    "add": ["EXTRA.md"],
-    "remove": ["vite-favicon.config.site2.js", "templates/_knock-knock.twig"],
-    "modify": ["README.md"],
+    "modify": ["EXTRA.md", "README.md", "vite-favicon.config.site2.js", "templates/_knock-knock.twig"],
     "findAndReplace": [
       {
         "location": ["templates", "/frontend/js/components-site/"],
