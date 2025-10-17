@@ -1,6 +1,6 @@
 {
   "description": "This is a test update to verify the update mechanism.",
   "frontend": {
-    "modify": ["icons/bold.svg"]
+    "modify": ["icons/bolt.svg"]
   }
 }
