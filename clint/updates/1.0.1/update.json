@@ -7,14 +7,14 @@
     "modify": ["EXTRA.md", "README.md", "vite-favicon.config.site2.js", "templates/_knock-knock.twig"],
     "findAndReplace": [
       {
-        "location": ["templates", "/frontend/js/components-site/"],
-        "find": "-light",
-        "replace": "-lighter"
+        "files": ["../templates/**/*.twig", "../frontend/js/components-core/*.ts"],
+        "from": "/-light/g",
+        "to": "-lighter"
       },
       {
-        "location": ["templates"],
-        "find": "/content=\"no(.*)\"/",
-        "replace": "/content=\"yes$1\"/"
+        "files": "../templates/**/*.twig",
+        "from": "/content=\"no(.*)\"/g",
+        "to": "content=\"yes$1\""
       }
     ]
   }
