@@ -8,7 +8,7 @@ A one-sentence summary of the release and its intent.
 
 ## Highlights
 
-- Key highlight or important change users should know immediately.
+- Key highlight or `important` change users should know immediately.
 
 ## Added
 
@@ -32,15 +32,24 @@ A one-sentence summary of the release and its intent.
 
 - Note removed features and any breaking changes
 
-```HTML
-    <div class="">
-        <span class="toggle-open js-toggle-collapsed-text">
-        <span class="sr-only">Show changelog</span>
-        </span>
-        <span class="toggle-close js-toggle-expanded-text">
-        <span class="sr-only">Hide changelog</span>
-        </span>
-    </div>
+```html
+<div class="">
+  <span class="toggle-open js-toggle-collapsed-text">
+    <span class="sr-only">Show changelog</span>
+  </span>
+  <span class="toggle-close js-toggle-expanded-text">
+    <span class="sr-only">Hide changelog</span>
+  </span>
+</div>
+```
+
+```twig
+{% if supplier.city|length %}
+    {{ supplier.city }}{% if supplier.province|length %},{% endif %}
+{% endif %}
+{% if supplier.province|length %}
+    {{ supplier.province.one().title }}
+{% endif %}
 ```
 
 # Manual intervention
