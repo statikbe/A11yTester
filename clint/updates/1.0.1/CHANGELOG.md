@@ -43,6 +43,8 @@ A one-sentence summary of the release and its intent.
 </div>
 ```
 
+This is some twig code
+
 ```twig
 {% if supplier.city|length %}
     {{ supplier.city }}{% if supplier.province|length %},{% endif %}
