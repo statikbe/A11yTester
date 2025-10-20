@@ -13,7 +13,7 @@ A one-sentence summary of the release and its intent.
 ## Added
 
 - Add new feature or API (PR #123 by @username)
-- Add tests or documentation for feature X
+- Add tests or [documentation for feature X](https://www.statik.be)
 
 ## Changed
 
