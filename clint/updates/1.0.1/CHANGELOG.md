@@ -32,6 +32,17 @@ A one-sentence summary of the release and its intent.
 
 - Note removed features and any breaking changes
 
+```HTML
+    <div class="">
+        <span class="toggle-open js-toggle-collapsed-text">
+        <span class="sr-only">Show changelog</span>
+        </span>
+        <span class="toggle-close js-toggle-expanded-text">
+        <span class="sr-only">Hide changelog</span>
+        </span>
+    </div>
+```
+
 # Manual intervention
 
 > ⚠️ **ATTENTION**:  
